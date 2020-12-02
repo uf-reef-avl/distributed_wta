@@ -1,0 +1,6 @@
+<launch>
+
+    <group ns="agent_1">
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"/>
+    </group>
+</launch>
