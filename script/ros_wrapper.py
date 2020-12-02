@@ -44,6 +44,7 @@ class WTAOptimization():
         self.x = 10*np.ones((self.Np))
         self.Xd = 10*np.ones(self.Nd)
         self.stop_optimization = False
+        self.update_dual_flag = False
         # self.optimization()
 
     def primal_callback(self, msg, vehicle_num):
@@ -51,16 +52,18 @@ class WTAOptimization():
         if vehicle_num in self.weapon_list:
             self.weapon_list.pop(self.weapon_list.index(vehicle_num))
         elif not self.weapon_list:
-            self.update_duals()
+            self.update_dual_flag = True
             self.weapon_list = range(0, self.num_weapons)
             self.weapon_list.pop(self.my_number)
 
         self.stop_optimization = True
-        self.x[vehicle_num] = msg.data
+        self.x[vehicle_num] = msg.data  # update the primals
 
     def dual_callback(self, msg, vehicle_num):
         print("In dual callback", vehicle_num)
-
+        self.weapon_list = range(0, self.num_weapons)
+        self.weapon_list.pop(self.my_number)
+        self.mu[vehicle_num] = msg.data
         # TODO: Update the dual variable
 
     def optimization(self):
@@ -70,12 +73,14 @@ class WTAOptimization():
         convdiff = [1]
         k = 0
         while convdiff[k] > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown():
-
-            print("in while loop")
+            if self.update_dual_flag:
+                self.update_duals()
+                self.update_dual_flag = False
             pGradient = inputs.gradPrimal(self.x, self.mu, self.my_number, self.Np, self.beta_adj)
             pUpdate = self.x[self.my_number] - self.gamma * pGradient
             self.x[self.my_number] = inputs.projPrimal(pUpdate)
             k +=1
+
 
         if convdiff[k] > 10 ** -8:
             pub_msg = Float32MultiArray()
