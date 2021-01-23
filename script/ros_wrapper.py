@@ -7,7 +7,7 @@ from std_msgs.msg import Float32MultiArray
 import inputs
 import communicate
 
-class WTAOptimization():
+class WTAOptimization():        ##who is this called for? which agents? 1 primal and 1 dual?
     def __init__(self):
 
         self.num_weapons = rospy.get_param("num_weapons", 3)
@@ -34,18 +34,21 @@ class WTAOptimization():
         self.delta = rospy.get_param("delta", 0.0001) # dual regularization parameter
         self.rho = rospy.get_param("delta", 2.1*(6-np.sqrt(3))/(6*self.delta)) # primal step-size
         self.gamma = rospy.get_param("delta", (1/2)*(1/120018)) # dual step-size
-        self.beta_adj = rospy.get_param("beta_adjust", 1)        # used for analysis in this particular problem; set to 1.
 
         # TODO: @Kat, @Kyle or @Prashant, make sure this is all valid
-        self.Np = self.num_weapons * self.num_targets
-        self.Nd = self.num_weapons
-        self.mu = np.zeros(self.Nd)
-
+        self.n = self.num_weapons * self.num_targets    #size of primal variable
+        self.m = self.num_weapons                       #size of dual variable
+        
+        #initialize variables
+        self.mu = np.zeros(self.Nd)     #TODO: will need to change - size spec to agent
         self.x = 10*np.ones((self.Np))
         self.Xd = 10*np.ones(self.Nd)
         self.stop_optimization = False
         self.update_dual_flag = False
         # self.optimization()
+        
+        from algorithm import DACOA
+        self.opt = DACOA(self.delta,self.gamma,self.rho, self.n, self.m)
 
     def primal_callback(self, msg, vehicle_num):
 
@@ -68,18 +71,20 @@ class WTAOptimization():
 
     def optimization(self):
 
-        dcount = np.zeros((self.Np, self.Nd))
-        t = np.zeros(self.Nd)
         convdiff = [1]
         k = 0
+    
+        
         while convdiff[k] > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown():
             if self.update_dual_flag:
                 self.update_duals()
                 self.update_dual_flag = False
-            pGradient = inputs.gradPrimal(self.x, self.mu, self.my_number, self.Np, self.beta_adj)
-            pUpdate = self.x[self.my_number] - self.gamma * pGradient
-            self.x[self.my_number] = inputs.projPrimal(pUpdate)
+            
+            xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number)
+            convdiff.append(la.norm(self.x,xUpdated))
+            self.x = xUpdated
             k +=1
+            # TODO: set stop_optimization = 1 if a certain k is reached?
 
 
         if convdiff[k] > 10 ** -8:
