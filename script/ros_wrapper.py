@@ -45,10 +45,10 @@ class WTAOptimization():        ##who is this called for? which agents? 1 primal
         self.Xd = 10*np.ones(self.Nd)
         self.stop_optimization = False
         self.update_dual_flag = False
-        # self.optimization()
-        
-        from algorithm import DACOA
+
+        from DACOA.algorithm import DACOA
         self.opt = DACOA(self.delta,self.gamma,self.rho, self.n, self.m)
+        # self.optimization()
 
     def primal_callback(self, msg, vehicle_num):
 
@@ -56,7 +56,7 @@ class WTAOptimization():        ##who is this called for? which agents? 1 primal
             self.weapon_list.pop(self.weapon_list.index(vehicle_num))
         elif not self.weapon_list:
             self.update_dual_flag = True
-            self.weapon_list = range(0, self.num_weapons)
+            self.weapon_list = range(0, self.num_weapons) +
             self.weapon_list.pop(self.my_number)
 
         self.stop_optimization = True
@@ -85,18 +85,23 @@ class WTAOptimization():        ##who is this called for? which agents? 1 primal
             self.x = xUpdated
             k +=1
             # TODO: set stop_optimization = 1 if a certain k is reached?
+            # TODO for Prashant: How are we going to restart the optimization? Set a max k to get out of the loop
 
 
-        if convdiff[k] > 10 ** -8:
+        if convdiff[k] < 10 ** -8: # Publish the primal agents a lot more frequently... Do it using a probabilty?
             pub_msg = Float32MultiArray()
-            pub_msg.data = self.x
+            pub_msg.data = self.x # Publish the block
             self.primal_pub.publsh(pub_msg)
+
+            # Decide on how to get the assignments
 
     def update_duals(self):
 
         dGradient = inputs.gradDual(self.Xd[self.my_number],self.mu[self.my_number], self.my_number, self.delta)
         dUpdate = self.mu[self.my_number] + self.rho * dGradient
         self.mu[self.my_number] = dUpdate
+
+        #Publish the Dual agents here
 
 
 
