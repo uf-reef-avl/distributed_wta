@@ -28,25 +28,21 @@ Q = 1. - Pk
 L = np.log(Q)
 V = np.array([2., 1.])
 
-def gradPrimal(x,mu,agent,Np,beta_adj):
-    Nd = len(mu)
-    N_targets = int(Np/Nd)
-    #xi=x[agent]
-    sumterm=0
-    #for j in range(Np):
-    #    if j != (agent) :
-    #        sumterm=sumterm + 4*(xi - x[j])
+def gradPrimal(self,x,mu,agent):
+    Nd = self.m
+    N_targets = int(self.n/self.m)
+    
     weapon = int(agent/N_targets)
     target = agent % N_targets
     sumterm = 0.
     for k in range(Nd):
         sumterm += L[k, target]*x[k*N_targets+target]
 
-    gradient= V[target]*L[weapon, target]*np.exp(sumterm) + mu @ A[:,agent] # This wont run on 2.7
+    gradient= V[target]*L[weapon, target]*np.exp(sumterm) + np.inner(mu, A[:,agent])
     return gradient
 
-def gradDual(x,mu,agent,delta):
-    gradient = A[agent,:] @ x - b[agent] - delta*mu
+def gradDual(self,x,mu,agent):
+    gradient = np.inner(A[agent,:],x) - b[agent] - self.delta*mu
     return gradient
 
 def projPrimal(x):
@@ -54,12 +50,11 @@ def projPrimal(x):
         x = 1.
     if x < 0.:
         x = 0.
-    x_hat = x
+    x_hat = np.copy(x)
     return x_hat
 
 def projDual(mu):
-    mu[mu<0]=0
+    if mu < 0:
+        mu=0
     mu_hat=mu
     return mu_hat
-
-        
