@@ -7,7 +7,7 @@ from std_msgs.msg import Float32MultiArray
 import inputs
 import communicate
 
-class WTAOptimization():        ##who is this called for? which agents? 1 primal and 1 dual?
+class WTAOptimization():
     def __init__(self):
 
         self.num_weapons = rospy.get_param("num_weapons", 3)
@@ -26,41 +26,49 @@ class WTAOptimization():        ##who is this called for? which agents? 1 primal
             dual_topic = "/dual_" + str(i)
             rospy.Subscriber(dual_topic, Float32MultiArray, self.dual_callback, i)
         # TODO: Revisit this: what is the dimension of the primal and duals being shared. @Kat or @Prashant
+            # Kat - agents only need to share their primal block values and dual scalar value. 
         pub_topic = "/primal_" + str(self.my_number)
         self.primal_pub = rospy.Publisher(pub_topic, Float32MultiArray, queue_size=10)
         pub_topic = "/dual_" + str(self.my_number)
         self.dual_pub = rospy.Publisher(pub_topic, Float32MultiArray, queue_size=10)
 
-        self.delta = rospy.get_param("delta", 0.0001) # dual regularization parameter
-        self.rho = rospy.get_param("delta", 2.1*(6-np.sqrt(3))/(6*self.delta)) # primal step-size
-        self.gamma = rospy.get_param("delta", (1/2)*(1/120018)) # dual step-size
+        self.delta = rospy.get_param("delta", 0.01) # dual regularization parameter
+        self.rho = rospy.get_param("rho", self.delta/(self.delta ** 2 + 2)) # dual step-size
+        self.gamma = rospy.get_param("gamma", 1) # primal step-size
 
         # TODO: @Kat, @Kyle or @Prashant, make sure this is all valid
         self.n = self.num_weapons * self.num_targets    #size of primal variable
         self.m = self.num_weapons                       #size of dual variable
+        pBlocks = self.num_targets*np.arange(self.num_weapons)
+        
         
         #initialize variables
-        self.mu = np.zeros(self.Nd)     #TODO: will need to change - size spec to agent
-        self.x = 10*np.ones((self.Np))
-        self.Xd = 10*np.ones(self.Nd)
+        self.mu = np.zeros(self.m)  #shared in primal and dual updates
+        self.x = .5*np.ones(self.n) #shared in primal and dual updates
         self.stop_optimization = False
         self.update_dual_flag = False
-
+        
+        #initialize algorithm
         from DACOA.algorithm import DACOA
         self.opt = DACOA(self.delta,self.gamma,self.rho, self.n, self.m)
+        self.opt.defBlocks(pBlocks,np.arange(self.m))
+        self.opt.useScalars()
         # self.optimization()
+        
+        self.a=self.opt.xBlocks[self.my_number]  #lower boundary of primal block (included)
+        self.b=self.opt.xBlocks[self.my_number+1] #upper boundary of primal block (not included)
 
     def primal_callback(self, msg, vehicle_num):
 
         if vehicle_num in self.weapon_list:
             self.weapon_list.pop(self.weapon_list.index(vehicle_num))
         elif not self.weapon_list:
-            self.update_dual_flag = True
+            self.update_dual_flag = True    #TODO: is this only set to true after an update is received from all agents?
             self.weapon_list = range(0, self.num_weapons) +
             self.weapon_list.pop(self.my_number)
 
         self.stop_optimization = True
-        self.x[vehicle_num] = msg.data  # update the primals
+        self.x[vehicle_num] = msg.data  # TODO: this needs to update a block of x, rather than a scalar.
 
     def dual_callback(self, msg, vehicle_num):
         print("In dual callback", vehicle_num)
@@ -68,6 +76,7 @@ class WTAOptimization():        ##who is this called for? which agents? 1 primal
         self.weapon_list.pop(self.my_number)
         self.mu[vehicle_num] = msg.data
         # TODO: Update the dual variable
+        # TODO: If another dual variable is received, the update_dual_flag and counter (weapon_list?) need to be reset.
 
     def optimization(self):
 
@@ -84,22 +93,20 @@ class WTAOptimization():        ##who is this called for? which agents? 1 primal
             convdiff.append(la.norm(self.x,xUpdated))
             self.x = xUpdated
             k +=1
-            # TODO: set stop_optimization = 1 if a certain k is reached?
             # TODO for Prashant: How are we going to restart the optimization? Set a max k to get out of the loop
 
 
         if convdiff[k] < 10 ** -8: # Publish the primal agents a lot more frequently... Do it using a probabilty?
             pub_msg = Float32MultiArray()
-            pub_msg.data = self.x # Publish the block
+            pub_msg.data = self.x[a:b] # publishes just the block
             self.primal_pub.publsh(pub_msg)
 
             # Decide on how to get the assignments
 
     def update_duals(self):
-
-        dGradient = inputs.gradDual(self.Xd[self.my_number],self.mu[self.my_number], self.my_number, self.delta)
-        dUpdate = self.mu[self.my_number] + self.rho * dGradient
-        self.mu[self.my_number] = dUpdate
+        
+        muUpdated = self.opt.singleDual(self.x,self.mu[self.my_number],self.my_number)
+        self.mu[self.my_number] = muUpdated
 
         #Publish the Dual agents here
 
