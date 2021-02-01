@@ -7,26 +7,22 @@ Created on Tue Oct 13 14:40:26 2020
 """
 
 import numpy as np
-# 5 weapons, 2 targets
-# Np = 10
-# Nd = 5
+# 3 weapons, 2 targets
+# Np = 6
+# Nd = 3
 # Problem Parameters
 
 
-A = np.array([[1, 1, 0, 0, 0, 0, 0, 0, 0, 0], 
-              [0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
-              [0, 0, 0, 0, 0, 0, 0, 0, 1, 1],])
-b= np.array([1, 1, 1, 1, 1])
-Pk = np.array([ [0.5, 0.5],
-				[0.5, 0.5],
-				[0.5, 0.5],
-				[0.5, 0.5],
-				[0.5, 0.5]])
+A = np.array([[1, 1, 0, 0, 0, 0], 
+              [0, 0, 1, 1, 0, 0],
+              [0, 0, 0, 0, 1, 1],])
+b= np.array([1, 1, 1])
+Pk = np.array([ [0.25, 0.75],
+				[0.6, 0.5],
+				[0.75, 0.25]])
 Q = 1. - Pk
 L = np.log(Q)
-V = np.array([2., 1.])
+V = np.array([1., 1.])
 
 def gradPrimal(self,x,mu,agent):
     Nd = self.m
