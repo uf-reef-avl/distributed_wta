@@ -1,0 +1,5 @@
+target_position:
+  [
+    {position: [5, -2.5, -1.0]},
+    {position: [-5, 2.5, -1.0]}
+  ]

@@ -1,0 +1,7 @@
+num_weapons: 3
+num_targets: 2
+max_iter: 1000
+pub_prob: 0.2
+delta: 0.01
+#rho:
+gamma: 1

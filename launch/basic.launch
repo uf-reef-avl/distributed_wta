@@ -1,6 +1,31 @@
 <launch>
 
     <group ns="agent_1">
-        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"/>
+        <arg name="first_tb3"  default="agent_1"/>
+        <arg name="first_tb3_x_pos" default="0.0"/>
+        <arg name="first_tb3_y_pos" default="0.0"/>
+        <arg name="first_tb3_z_pos" default="0.0"/>
+        <arg name="first_tb3_yaw"   default="0.0"/>
+        <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+            <param name="publish_frequency" type="double" value="50.0" />
+            <param name="tf_prefix" value="$(arg first_tb3)" />
+        </node>
+
+        <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model test -x $(arg first_tb3_x_pos) -y $(arg first_tb3_y_pos) -z $(arg first_tb3_z_pos) -Y $(arg first_tb3_yaw) -param robot_description" />
+
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen">
+            <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
+            <rosparam file="$(find wta_distributed_optimization)/params/basic_param.yaml" />
+        </node>
+
+        <node name="controller" pkg="turtlebot_pid" type="turtlebot_pid_node" args="/$(arg first_tb3)" output = "screen">
+            <remap from="turtle_pose" to="odom"/>
+            <remap from="turtle_goal" to="setpoint"/>
+            <remap from="turtle_velocity_publisher" to="cmd_vel"/>
+        </node>
     </group>
+
+
 </launch>
