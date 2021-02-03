@@ -90,6 +90,8 @@ class WTAOptimization():
         self.stop_optimization = True
         print self.weapon_list
         self.x[vehicle_num] = msg.data[0]  # TODO: this needs to update a block of x, rather than a scalar.
+        self.optimization()
+        self.stop_optimization = False
 
     def dual_callback(self, msg, vehicle_num):
         self.mu[vehicle_num] = msg.data
@@ -99,22 +101,23 @@ class WTAOptimization():
 
     def optimization(self):
 
-        convdiff = [1]
+        convdiff = 1
+        # self.k_max = 1
         k = 0 # When we get a primal agent and the optimization stops, it restarts the counter for the number of iteration
         while convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
             if self.update_dual_flag:
                 self.update_duals()
                 self.update_dual_flag = False
-            
-            xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number)
-            # print xUpdated
-            #convdiff.append(la.norm([self.x, xUpdated]))
-            convdiff = la.norm([self.x, xUpdated])
-            self.x = xUpdated
-            k += 1
+
+            print self.x
             print k
-            print xUpdated
+            xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number)
+            #convdiff.append(la.norm([self.x, xUpdated]))
+            convdiff = la.norm(self.x - xUpdated)
+            self.x = np.copy(xUpdated)
+            k += 1
             time.sleep(1)
+            self.update_duals()
 
         print "done optimizing"
         print self.x
@@ -123,26 +126,23 @@ class WTAOptimization():
         #     pub_msg.data = self.x[self.my_primal_variable_idx] # publishes just the block
         #     self.primal_pub.publish(pub_msg)
         #
-        self.stop_optimization = False
+
         assignment = 0
         setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment])
         self.goal_pose_pub.publish(setpoint_msg)
-
-        time.sleep(1)
-        self.optimization() # calling this function recursively to make sure we keep getting assignments
 
         # Decide on the assignments; argmax
         # Once the assignment is done, publish the goal pose to the turtlebot pid node
 
 
     def update_duals(self):
-        
-        muUpdated = self.opt.singleDual(self.x,self.mu[self.my_number],self.my_number)
-        self.mu[self.my_number] = muUpdated
-        pub_msg = Float32MultiArray()
-        pub_msg.data = muUpdated
-        if np.random.normal(loc=0, scale=1) > self.publishing_threshold/3:
-            self.dual_pub.publish(pub_msg)
+
+        muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number)
+        self.mu[self.my_number] = np.copy(muUpdated)
+        # pub_msg = Float32MultiArray()
+        # pub_msg.data = muUpdated
+        # if np.random.normal(loc=0, scale=1) > self.publishing_threshold/3:
+        #     self.dual_pub.publish(pub_msg)
 
     def pose_msg_from_dict(self, target_dictionary):
         pose_msg = PoseStamped()
