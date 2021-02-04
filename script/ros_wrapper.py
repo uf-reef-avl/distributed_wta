@@ -17,21 +17,22 @@ import time
 class WTAOptimization():
     def __init__(self):
 
-        self.num_weapons = rospy.get_param("num_weapons", 3) # number of weapons/agent. Obtained from ROS Param
-        self.num_targets = rospy.get_param("num_targets", 2) # number of weapons/agent. Obtained from ROS Param
-        self.k_max = rospy.get_param("max_iter", 100) # number of weapons/agent. Obtained from ROS Param
-        self.publishing_threshold = rospy.get_param("pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
-        self.target_positions = rospy.get_param("target_position") # number of weapons/agent. Obtained from ROS Param
+        self.num_weapons = rospy.get_param("~num_weapons", 3) # number of weapons/agent. Obtained from ROS Param
+        self.num_targets = rospy.get_param("~num_targets", 2) # number of weapons/agent. Obtained from ROS Param
+        self.k_max = rospy.get_param("~max_iter", 100) # number of weapons/agent. Obtained from ROS Param
+        self.publishing_threshold = rospy.get_param("~pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
+        self.target_positions = rospy.get_param("~target_position") # number of weapons/agent. Obtained from ROS Param
 
         ## Assigning agent numbers
         # In order for the agent to assign weapon/agent id by themselves, we will rely on the ROS namespace which
         # will be declared in the launch file. The namespace can be used to identify the agent and also establish the
         # topics to publish and subscribe to.
 
-        # my_namespace = rospy.get_namespace() # number of weapons/agent. Obtained from ROS Param
-        my_namespace = "robot01" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
+        my_namespace = rospy.get_namespace() # number of weapons/agent. Obtained from ROS Param
+        # my_namespace = "robot01" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
         self.my_number = int(my_namespace[-2]) # number of weapons/agent. Obtained from ROS Param
-        print self.my_number
+        print "my number is " + str(self.my_number)
+        print "publishing threshold is " + str(self.publishing_threshold)
 
         ## This line will generate a list of all the primal agents we have. Originally intended to have 2 primal and
         # 1 dual agents for each target. Weapons list if similar but the agent on which this node will run on will be
@@ -40,19 +41,17 @@ class WTAOptimization():
         self.my_dual_variable_idx = self.my_number
         self.weapon_list = range(0, self.num_weapons)
         self.weapon_list.pop(self.my_number)
-        print(self.weapon_list)
 
         for i in [x for x in xrange(self.num_weapons) if x!=self.my_number]:
             primal_topic = "/primal_" + str(i)
             rospy.Subscriber(primal_topic, Float32MultiArray, self.primal_callback, i)
             dual_topic = "/dual_" + str(i)
-            rospy.Subscriber(dual_topic, Float32MultiArray, self.dual_callback, i)
-        # TODO: Revisit this: what is the dimension of the primal and duals being shared. @Kat or @Prashant
+            rospy.Subscriber(dual_topic, Float64, self.dual_callback, i)
             # Kat - agents only need to share their primal block values and dual scalar value. 
         pub_topic = "/primal_" + str(self.my_number)
         self.primal_pub = rospy.Publisher(pub_topic, Float32MultiArray, queue_size=10)
         pub_topic = "/dual_" + str(self.my_number)
-        self.dual_pub = rospy.Publisher(pub_topic, Float32MultiArray, queue_size=10)
+        self.dual_pub = rospy.Publisher(pub_topic, Float64, queue_size=10)
 
         self.goal_pose_pub = rospy.Publisher("goal_pose", PoseStamped, queue_size=10)
 
@@ -82,67 +81,55 @@ class WTAOptimization():
     def primal_callback(self, msg, vehicle_num):
         if vehicle_num in self.weapon_list:
             self.weapon_list.pop(self.weapon_list.index(vehicle_num))
-        elif not self.weapon_list:
-            self.update_dual_flag = True    #TODO: is this only set to true after an update is received from all agents? Yes
+
+        if not self.weapon_list:
+            self.update_dual_flag = True
             self.weapon_list = range(0, self.num_weapons)
             self.weapon_list.pop(self.my_number)
 
         self.stop_optimization = True
-        print self.weapon_list
-        self.x[vehicle_num] = msg.data[0]  # TODO: this needs to update a block of x, rather than a scalar.
-        self.optimization()
+        idx = range(vehicle_num * self.num_targets, (vehicle_num + 1) * self.num_targets)
+        self.x[idx] = msg.data
         self.stop_optimization = False
+        self.optimization()
 
     def dual_callback(self, msg, vehicle_num):
         self.mu[vehicle_num] = msg.data
-        self.update_dual_flag = True
         self.weapon_list = range(0, self.num_weapons)
         self.weapon_list.pop(self.my_number)
 
     def optimization(self):
-
         convdiff = 1
-        # self.k_max = 1
-        k = 0 # When we get a primal agent and the optimization stops, it restarts the counter for the number of iteration
+        k = 0
         while convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
             if self.update_dual_flag:
+                # print "update the duals"
                 self.update_duals()
                 self.update_dual_flag = False
 
-            print self.x
-            print k
             xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number)
-            #convdiff.append(la.norm([self.x, xUpdated]))
             convdiff = la.norm(self.x - xUpdated)
             self.x = np.copy(xUpdated)
             k += 1
             time.sleep(1)
-            self.update_duals()
 
-        print "done optimizing"
-        print self.x
-        # if np.random.normal(loc=0, scale=1) > self.publishing_threshold:
-        #     pub_msg = Float32MultiArray()
-        #     pub_msg.data = self.x[self.my_primal_variable_idx] # publishes just the block
-        #     self.primal_pub.publish(pub_msg)
-        #
+            if np.random.normal(loc=0, scale=1) < self.publishing_threshold:
+                pub_msg = Float32MultiArray()
+                pub_msg.data = self.x[self.my_primal_variable_idx]  # publishes just the block
+                self.primal_pub.publish(pub_msg)
 
-        assignment = 0
-        setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment])
-        self.goal_pose_pub.publish(setpoint_msg)
-
-        # Decide on the assignments; argmax
-        # Once the assignment is done, publish the goal pose to the turtlebot pid node
-
+            assignment = np.unravel_index(np.argmax(self.x[self.my_primal_variable_idx]), self.x.shape)  # get the index
+            print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
+            setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0]])
+            self.goal_pose_pub.publish(setpoint_msg)
 
     def update_duals(self):
-
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number)
         self.mu[self.my_number] = np.copy(muUpdated)
-        # pub_msg = Float32MultiArray()
-        # pub_msg.data = muUpdated
-        # if np.random.normal(loc=0, scale=1) > self.publishing_threshold/3:
-        #     self.dual_pub.publish(pub_msg)
+        pub_msg = Float64()
+        pub_msg.data = self.mu[self.my_number]
+        if np.random.normal(loc=0, scale=1) < self.publishing_threshold/3:
+            self.dual_pub.publish(pub_msg)
 
     def pose_msg_from_dict(self, target_dictionary):
         pose_msg = PoseStamped()
@@ -154,7 +141,6 @@ class WTAOptimization():
         pose_msg.pose.orientation.y = 0
         pose_msg.pose.orientation.z = 0
         pose_msg.pose.orientation.w = 1
-
         return pose_msg
 
 
