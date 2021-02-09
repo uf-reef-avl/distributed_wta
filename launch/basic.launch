@@ -5,9 +5,10 @@
     <arg name="third_agent"  default="agent_02"/>
     <arg name="model" default="burger"/>
     <arg name="run_gazebo" default="true"/>
+    <arg name="node_start_delay" default="0.0" />
 
     <group ns="$(arg first_agent)">
-        <arg name="node_start_delay" default="3.0" />
+
         <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
               launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
             <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
@@ -47,7 +48,6 @@
     </group>
 
     <group ns="$(arg second_agent)">
-        <arg name="node_start_delay" default="3.0" />
         <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
             <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
@@ -87,7 +87,6 @@
     </group>
 
     <group ns="$(arg third_agent)">
-        <arg name="node_start_delay" default="3.0" />
         <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
             <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
