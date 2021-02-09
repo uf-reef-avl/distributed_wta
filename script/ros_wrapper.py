@@ -20,7 +20,8 @@ class WTAOptimization():
         self.num_weapons = rospy.get_param("~num_weapons", 3) # number of weapons/agent. Obtained from ROS Param
         self.num_targets = rospy.get_param("~num_targets", 2) # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("~max_iter", 100) # number of weapons/agent. Obtained from ROS Param
-        self.publishing_threshold = rospy.get_param("~pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
+        self.primal_pub_probability = rospy.get_param("~primal_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
+        self.dual_pub_probability = rospy.get_param("~dual_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("~target_position") # number of weapons/agent. Obtained from ROS Param
 
         ## Assigning agent numbers
@@ -32,7 +33,7 @@ class WTAOptimization():
         # my_namespace = "robot01" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
         self.my_number = int(my_namespace[-2]) # number of weapons/agent. Obtained from ROS Param
         print "my number is " + str(self.my_number)
-        print "publishing threshold is " + str(self.publishing_threshold)
+        # print "publishing threshold is " + str(self.primal_pub_prob)
 
         ## This line will generate a list of all the primal agents we have. Originally intended to have 2 primal and
         # 1 dual agents for each target. Weapons list if similar but the agent on which this node will run on will be
@@ -68,6 +69,7 @@ class WTAOptimization():
         self.x = .5*np.ones(self.n) #shared in primal and dual updates
         self.stop_optimization = False
         self.update_dual_flag = False
+        self.delay = 1
         
         #initialize algorithm
         from DACOA.algorithm import DACOA
@@ -83,6 +85,7 @@ class WTAOptimization():
             self.weapon_list.pop(self.weapon_list.index(vehicle_num))
 
         if not self.weapon_list:
+            self.delay = 0.05
             self.update_dual_flag = True
             self.weapon_list = range(0, self.num_weapons)
             self.weapon_list.pop(self.my_number)
@@ -111,15 +114,17 @@ class WTAOptimization():
             convdiff = la.norm(self.x - xUpdated)
             self.x = np.copy(xUpdated)
             k += 1
-            time.sleep(1)
+            time.sleep(self.delay)
 
-            if np.random.normal(loc=0, scale=1) < self.publishing_threshold:
+            if np.random.normal(loc=0, scale=1) < self.primal_pub_probability:
                 pub_msg = Float32MultiArray()
                 pub_msg.data = self.x[self.my_primal_variable_idx]  # publishes just the block
                 self.primal_pub.publish(pub_msg)
 
             assignment = np.unravel_index(np.argmax(self.x[self.my_primal_variable_idx]), self.x.shape)  # get the index
-            print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
+            # print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
+            # print "Robot " + str(self.my_number) + " primal " + str(self.x[self.my_primal_variable_idx] )
+            # print "Robot " + str(self.my_number) + " convergence " + str(convdiff) + " number of steps " + str(k)
             setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0]])
             self.goal_pose_pub.publish(setpoint_msg)
 
@@ -128,7 +133,7 @@ class WTAOptimization():
         self.mu[self.my_number] = np.copy(muUpdated)
         pub_msg = Float64()
         pub_msg.data = self.mu[self.my_number]
-        if np.random.normal(loc=0, scale=1) < self.publishing_threshold/3:
+        if np.random.normal(loc=0, scale=1) < self.dual_pub_probability:
             self.dual_pub.publish(pub_msg)
 
     def pose_msg_from_dict(self, target_dictionary):

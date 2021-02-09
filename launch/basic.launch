@@ -7,14 +7,16 @@
     <arg name="run_gazebo" default="true"/>
 
     <group ns="$(arg first_agent)">
-
-        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen">
+        <arg name="node_start_delay" default="3.0" />
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+              launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
             <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
             <rosparam>
                 num_weapons: 3
                 num_targets: 2
                 max_iter: 1000
-                pub_prob: 0.99
+                primal_pub_prob: 0.5
+                dual_pub_prob: 0.5
                 delta: 0.01
                 #rho:
                 gamma: 1
@@ -45,13 +47,16 @@
     </group>
 
     <group ns="$(arg second_agent)">
-        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen">
+        <arg name="node_start_delay" default="3.0" />
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+         launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
             <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
             <rosparam>
                 num_weapons: 3
                 num_targets: 2
                 max_iter: 1000
-                pub_prob: 0.99
+                primal_pub_prob: 0.5
+                dual_pub_prob: 0.5
                 delta: 0.01
                 #rho:
                 gamma: 1
@@ -82,13 +87,16 @@
     </group>
 
     <group ns="$(arg third_agent)">
-        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen">
+        <arg name="node_start_delay" default="3.0" />
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+         launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
             <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
             <rosparam>
                 num_weapons: 3
                 num_targets: 2
                 max_iter: 1000
-                pub_prob: 0.99
+                primal_pub_prob: 0.5
+                dual_pub_prob: 0.5
                 delta: 0.01
                 #rho:
                 gamma: 1
