@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 """ROS Wrapper for the Distributed WTA
 This node is a ROS Wrapper for the distributed optimization. The code will run a ROS node and is intended to run on an
 agent eg. tbot. This node will subscribe to primal and dual variable from other agents and perform optimizations
@@ -104,7 +104,7 @@ class WTAOptimization():
     def optimization(self):
         convdiff = 1
         k = 0
-        while convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
+        while convdiff > 10 ** -5 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
             if self.update_dual_flag:
                 # print "update the duals"
                 self.update_duals()
