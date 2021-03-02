@@ -9,10 +9,13 @@ import numpy as np
 import scipy.linalg as la
 from std_msgs.msg import Float64
 from std_msgs.msg import Float32MultiArray
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point
 import inputs
 import communicate
 import time
+from visualization import WTAVisualizer
+from inputs import WTAInputs
+from nav_msgs.msg import Odometry
 
 class WTAOptimization():
     def __init__(self):
@@ -23,15 +26,17 @@ class WTAOptimization():
         self.primal_pub_probability = rospy.get_param("~primal_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
         self.dual_pub_probability = rospy.get_param("~dual_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("~target_position") # number of weapons/agent. Obtained from ROS Param
+        self.visualization = WTAVisualizer(self.target_positions)
+        self.inputs = WTAInputs()
 
         ## Assigning agent numbers
         # In order for the agent to assign weapon/agent id by themselves, we will rely on the ROS namespace which
         # will be declared in the launch file. The namespace can be used to identify the agent and also establish the
         # topics to publish and subscribe to.
 
-        my_namespace = rospy.get_namespace() # number of weapons/agent. Obtained from ROS Param
+        self.my_namespace = rospy.get_namespace() # number of weapons/agent. Obtained from ROS Param
         # my_namespace = "robot01" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
-        self.my_number = int(my_namespace[-2]) # number of weapons/agent. Obtained from ROS Param
+        self.my_number = int(self.my_namespace[-2]) # number of weapons/agent. Obtained from ROS Param
         print "my number is " + str(self.my_number)
         # print "publishing threshold is " + str(self.primal_pub_prob)
 
@@ -42,6 +47,8 @@ class WTAOptimization():
         self.my_dual_variable_idx = self.my_number
         self.weapon_list = range(0, self.num_weapons)
         self.weapon_list.pop(self.my_number)
+
+        rospy.Subscriber("odom", Odometry, self.odom_callback)
 
         for i in [x for x in xrange(self.num_weapons) if x!=self.my_number]:
             primal_topic = "/primal_" + str(i)
@@ -73,7 +80,7 @@ class WTAOptimization():
         
         #initialize algorithm
         from DACOA.algorithm import DACOA
-        self.opt = DACOA(self.delta,self.gamma,self.rho, self.n, self.m) #TODO: add documentation
+        self.opt = DACOA(self.delta,self.gamma,self.rho, self.n, self.m, self.inputs) #TODO: add documentation
         self.opt.defBlocks(pBlocks,np.arange(self.m)) #TODO: add documentation
         self.opt.useScalars() #TODO: add documentation
         self.a=self.opt.xBlocks[self.my_number]  #lower boundary of primal block (included)
@@ -110,7 +117,7 @@ class WTAOptimization():
                 self.update_duals()
                 self.update_dual_flag = False
 
-            xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number)
+            xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number, self.inputs)
             convdiff = la.norm(self.x - xUpdated)
             self.x = np.copy(xUpdated)
             k += 1
@@ -129,7 +136,7 @@ class WTAOptimization():
             self.goal_pose_pub.publish(setpoint_msg)
 
     def update_duals(self):
-        muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number)
+        muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
         self.mu[self.my_number] = np.copy(muUpdated)
         pub_msg = Float64()
         pub_msg.data = self.mu[self.my_number]
@@ -148,6 +155,13 @@ class WTAOptimization():
         pose_msg.pose.orientation.w = 1
         return pose_msg
 
+    def odom_callback(self, msg):
+        agent_position = Point()
+        agent_position = msg.pose.pose.position
+        agent_position.z = 0
+        ns = self.my_namespace + "position"
+        self.visualization.visualize_robot(agent_position, ns)
+        self.visualization.visualize_target()
 
 if __name__ == '__main__':
     rospy.init_node('Distributed_WTA', anonymous=False)
