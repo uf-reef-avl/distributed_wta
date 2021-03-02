@@ -9,19 +9,24 @@ Created on Tue Oct 13 14:40:26 2020
 import numpy as np
 
 class WTAInputs():
-    def __init__(self):
+    def __init__(self, num_weapons, num_targets, Pk, V):
 
-        self.A = np.array([[1, 1, 0, 0, 0, 0],
-              [0, 0, 1, 1, 0, 0],
-              [0, 0, 0, 0, 1, 1],])
-        self.b = np.array([1, 1, 1])
+        A = np.empty([num_weapons, num_targets * num_weapons], dtype=float)
 
-        self.Pk = np.array([[0.25, 0.75],
-                       [0.6, 0.5],
-                       [0.75, 0.25]])
+        for i in range(0,num_weapons):
+            col_vec = np.zeros((1, num_weapons))
+            col_vec[0,i] = 1
+            block = np.repeat(col_vec, num_targets)
+            A[i,] = block
+
+        self.A = np.array(A)
+        self.b = np.ones(num_weapons)
+        self.Pk = Pk
+        self.V = V
+
         self.Q = 1. - self.Pk
         self.L = np.log(self.Q)
-        self.V = np.array([1., 1.])  # signifies the importance of the targets
+        # self.V = np.array([1., 1.])  # signifies the importance of the targets
 
     def gradPrimal(self, optInputs,x, mu, agent):
         Nd = optInputs.m
@@ -63,18 +68,9 @@ class WTAInputs():
 
 
 
-# # num_weapons = rospy.get_param("~num_weapons", 3) # number of weapons/agent. Obtained from ROS Param
-# # num_targets = rospy.get_param("~num_targets", 2) # number of weapons/agent. Obtained from ROS Param
-# num_weapons = 3
-# num_targets = 2
 
-# A = np.empty([num_weapons, num_targets * num_weapons], dtype=float)
-#
-# for i in range(0,num_weapons):
-#     col_vec = np.zeros((1, num_weapons))
-#     col_vec[0,i] = 1
-#     block = np.repeat(col_vec, num_targets)
-#     A[i,] = block
+
+
 #
 # b= np.array([1, 1, 1])
 
