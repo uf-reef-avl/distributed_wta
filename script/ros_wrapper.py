@@ -25,12 +25,11 @@ class WTAOptimization():
         self.k_max = rospy.get_param("~max_iter", 100) # number of weapons/agent. Obtained from ROS Param
         self.primal_pub_probability = rospy.get_param("~primal_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
         self.dual_pub_probability = rospy.get_param("~dual_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
-        self.target_positions = rospy.get_param("~target_position") # number of weapons/agent. Obtained from ROS Param
-        Pk = np.array(rospy.get_param("~Pk")) # number of weapons/agent. Obtained from ROS Param
+        self.target_positions = rospy.get_param("/target_position") # number of weapons/agent. Obtained from ROS Param
+        Pk = np.array(rospy.get_param("/Pk")) # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
         assert Pk.shape[1] == self.num_targets
 
-        print self.target_positions
         # For attritiion, I am going to increase the number targets.
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
