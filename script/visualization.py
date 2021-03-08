@@ -98,15 +98,18 @@ class WTAVisualizer():
             # self.target_marker.points.append(target_point)
             self.marker_pub.publish(temp_target)
 
-    def visualize_robot(self, position, ns):
+    def visualize_robot(self, position, ns, is_simulated):
 
         self.odom_marker.id = self.marker_key_index
         self.odom_marker.ns = ns
         self.odom_marker.points = []
-        # self.odom_marker.points.append(position)
         self.odom_marker.pose.position.x = position.x
         self.odom_marker.pose.position.y = position.y
         self.odom_marker.pose.position.z = 0
+	if(is_simulated):
+	    self.odom_marker.color = ColorRGBA(1, 0, 0, 1)
+	else:
+	    self.odom_marker.color = ColorRGBA(0, 0, 0, 1)
 
         self.marker_pub.publish(self.odom_marker)
 

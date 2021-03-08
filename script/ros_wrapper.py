@@ -26,6 +26,7 @@ class WTAOptimization():
         self.primal_pub_probability = rospy.get_param("~primal_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
         self.dual_pub_probability = rospy.get_param("~dual_pub_prob", 0.2) # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position") # number of weapons/agent. Obtained from ROS Param
+	self.is_simulated = rospy.get_param("~is_simulated") # Tells if a turtlebot is simulated or real
         Pk = np.array(rospy.get_param("/Pk")) # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
         assert Pk.shape[1] == self.num_targets
@@ -177,7 +178,7 @@ class WTAOptimization():
         agent_position = msg.pose.pose.position
         agent_position.z = 0
         ns = self.my_namespace + "position"
-        self.visualization.visualize_robot(agent_position, ns)
+        self.visualization.visualize_robot(agent_position, ns, self.is_simulated)
         self.visualization.visualize_target()
         for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
             self.visualization.visualize_communication(self.my_number, i, dual=False, brighten=False)
