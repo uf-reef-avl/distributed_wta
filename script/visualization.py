@@ -113,8 +113,8 @@ class WTAVisualizer():
     def visualize_communication(self, my_number, communicated_agent_number, dual=False, brighten=False):
 
 
-        my_name_target_frame = 'agent_0' + str(my_number) + '/odom'
-        my_name_parent_frame = 'agent_0' + str(my_number) + '/base_footprint'
+        my_name_target_frame = 'agent_' + str(my_number) + '/odom'
+        my_name_parent_frame = 'agent_' + str(my_number) + '/base_footprint'
 
         try:
             trans = self.tfBuffer.lookup_transform(my_name_target_frame, my_name_parent_frame, rospy.Time())
@@ -125,8 +125,8 @@ class WTAVisualizer():
         agent1_point.x = trans.transform.translation.x
         agent1_point.y = trans.transform.translation.y
 
-        agent_target_frame = 'agent_0' + str(communicated_agent_number) + '/odom'
-        agent_parent_frame = 'agent_0' + str(communicated_agent_number) + '/base_footprint'
+        agent_target_frame = 'agent_' + str(communicated_agent_number) + '/odom'
+        agent_parent_frame = 'agent_' + str(communicated_agent_number) + '/base_footprint'
         try:
             trans = self.tfBuffer.lookup_transform(agent_target_frame, agent_parent_frame, rospy.Time())
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
