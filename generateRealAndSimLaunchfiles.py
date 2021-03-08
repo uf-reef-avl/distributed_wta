@@ -120,7 +120,7 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
                 delta: 0.01
                 #rho:
                 gamma: 1
-		is_simulated: True
+                is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
         </node>
