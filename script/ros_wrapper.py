@@ -47,7 +47,7 @@ class WTAOptimization():
 
         self.my_namespace = rospy.get_namespace() # number of weapons/agent. Obtained from ROS Param
         # my_namespace = "robot01" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
-        self.my_number = int(self.my_namespace.split("_")[-1]) # number of weapons/agent. Obtained from ROS Param
+        self.my_number = int(self.my_namespace.replace("/","").split("_")[-1]) # number of weapons/agent. Obtained from ROS Param
         print "my number is " + str(self.my_number)
         print self.my_namespace
 
