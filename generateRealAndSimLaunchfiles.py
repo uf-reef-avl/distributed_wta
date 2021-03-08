@@ -53,7 +53,7 @@ def generate_real_turtlebot_launch_file(id,target_number, weapon_number):
 	<arg name="param_file" default="$(find optitrack_to_gazebo)/params/basic_param.yaml" />
 	<node pkg="optitrack_to_gazebo" type="optitrack_to_gazebo_node.py" name="optitrack_to_gazebo" >
 	     <param name="rigidbody_name" value="$(arg agent_name)" type="str"/>
-	    <remap from="pose_stamped" to="$(arg agent_name)/nwu/pose_stamped"/>
+	    <remap from="pose_stamped" to="nwu/pose_stamped"/>
 	    <rosparam file="$(arg param_file)" command="load"/>
 	</node>
 	</group>
