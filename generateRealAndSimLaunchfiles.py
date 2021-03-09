@@ -157,10 +157,12 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
 
 def generate_params_yaml_file(target_number, weapon_number):
     f = open("params/target_position.yaml", "w")
-    file_str = r"""target_position:
-  ["""
+    file_str = r"""target_position: ["""
     for i in range(target_number):
-        file_str+=  "{position: ["+str(random.uniform(-4,4))+"," +str(random.uniform(-4,4))+"," +str(random.uniform(-4,4))+"]},"
+        on_diag = random.uniform(0,1) * i + i
+        on_diag = on_diag % 5
+        on_diag = on_diag * random.choice([-1.,1.])
+        file_str+=  "{position: ["+str(on_diag*0.5)+"," +str(on_diag)+"," +str(random.uniform(0,0.5))+"]},"
     file_str +=  r"""]
     
 Pk: """
