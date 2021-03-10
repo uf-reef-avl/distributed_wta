@@ -6,6 +6,7 @@ from std_msgs.msg import ColorRGBA
 from geometry_msgs.msg import Vector3, Point
 import tf2_ros
 
+
 class WTAVisualizer():
     def __init__(self, target_position):
 
@@ -35,7 +36,7 @@ class WTAVisualizer():
         self.odom_marker.pose.orientation.y = 0
         self.odom_marker.pose.orientation.z = 0
         self.odom_marker.pose.orientation.w = 1
-        self.odom_marker.scale = Vector3(0.005,0.005,0.005)
+        self.odom_marker.scale = Vector3(0.005, 0.005, 0.005)
         # self.odom_marker.scale = Vector3(0.5, 0.5, 0.5)
         self.odom_marker.lifetime = rospy.Duration()
         self.odom_marker.color = odom_color
@@ -54,7 +55,7 @@ class WTAVisualizer():
         self.target_marker.pose.orientation.y = 0
         self.target_marker.pose.orientation.z = 0
         self.target_marker.pose.orientation.w = 1
-        self.target_marker.scale = Vector3(0.01,0.01,0.01)
+        self.target_marker.scale = Vector3(0.01, 0.01, 0.01)
         self.target_marker.id = self.marker_key_index
         self.target_marker.ns = "TargetMarker"
         self.target_marker.lifetime = rospy.Duration()
@@ -106,48 +107,46 @@ class WTAVisualizer():
         self.odom_marker.pose.position.x = position.x
         self.odom_marker.pose.position.y = position.y
         self.odom_marker.pose.position.z = 0
-	if(is_simulated):
-	    self.odom_marker.color = ColorRGBA(1, 0, 0, 1)
-	else:
-	    self.odom_marker.color = ColorRGBA(0, 0, 0, 1)
+        if (is_simulated):
+            self.odom_marker.color = ColorRGBA(1, 0, 0, 1)
+        else:
+            self.odom_marker.color = ColorRGBA(0, 0, 0, 1)
 
         self.marker_pub.publish(self.odom_marker)
 
-    def visualize_communication(self, my_number, communicated_agent_number, dual=False, brighten=False):
-
-
-        my_name_target_frame = 'agent_' + str(my_number) + '/odom'
-        my_name_parent_frame = 'agent_' + str(my_number) + '/base_footprint'
-
-        try:
-            trans = self.tfBuffer.lookup_transform(my_name_target_frame, my_name_parent_frame, rospy.Time())
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            return
-
-        agent1_point = Point()
-        agent1_point.x = trans.transform.translation.x
-        agent1_point.y = trans.transform.translation.y
+    def visualize_communication(self, my_number, communicated_agent_number, agent1_point, dual=False, brighten=False):
+        # my_name_target_frame = 'agent_' + str(my_number) + '/odom'
+        # my_name_parent_frame = 'agent_' + str(my_number) + '/base_footprint'
+        #
+        # try:
+        #     trans = self.tfBuffer.lookup_transform(my_name_target_frame, my_name_parent_frame, rospy.Time())
+        # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        #     return
+        #
+        # agent1_point = Point()
+        # agent1_point.x = trans.transform.translation.x
+        # agent1_point.y = trans.transform.translation.y
 
         agent_target_frame = 'agent_' + str(communicated_agent_number) + '/odom'
         agent_parent_frame = 'agent_' + str(communicated_agent_number) + '/base_footprint'
         try:
             trans = self.tfBuffer.lookup_transform(agent_target_frame, agent_parent_frame, rospy.Time())
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            return
+            try:
+                trans = self.tfBuffer.lookup_transform('optitrack', 'agent_' + str(communicated_agent_number), rospy.Time())
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                return
 
         agent2_point = Point()
         agent2_point.x = trans.transform.translation.x
         agent2_point.y = trans.transform.translation.y
 
-        self.arrow_marker.ns = 'arrow_' + str(my_number) + str(communicated_agent_number)
-        self.odom_marker.id = self.marker_key_index
-        self.arrow_marker.points = []
-        self.arrow_marker.points = [agent1_point, agent2_point]
-
         # rgb_value = self.arrow_rgb
 
         if dual:
             rgb_value = [1, 1, 0]
+            agent1_point.z += 0.01
+            agent2_point.z += 0.01
         else:
             rgb_value = self.arrow_rgb
 
@@ -156,8 +155,9 @@ class WTAVisualizer():
         else:
             color = ColorRGBA(rgb_value[0], rgb_value[1], rgb_value[2], 0.05)
 
+        self.arrow_marker.ns = 'arrow_' + str(my_number) + str(communicated_agent_number)
+        self.odom_marker.id = self.marker_key_index
+        self.arrow_marker.points = []
+        self.arrow_marker.points = [agent1_point, agent2_point]
         self.arrow_marker.color = color
         self.marker_pub.publish(self.arrow_marker)
-
-
-
