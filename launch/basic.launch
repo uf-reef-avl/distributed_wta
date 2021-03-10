@@ -6,17 +6,17 @@
     <arg name="fourth_agent"  default="agent_3"/>
     <arg name="model" default="burger"/>
 
-    <arg name="run_gazebo" default="false"/>
+    <arg name="run_gazebo" default="true"/>
     <arg name="node_start_delay" default="0.0" />
 
-    <arg name="run_rviz" default="false"/>
+    <arg name="run_rviz" default="true"/>
     <arg name="record_bag" default="false"/>
     <arg name="bag_name" default="test"/>
 
     <arg name="num_weapons" default="4"/>
     <arg name="num_targets" default="3"/>
 
-    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
+    <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
 
     <group ns="$(arg first_agent)">
         <arg name="agent_name" default="$(arg first_agent)"/>
@@ -177,6 +177,9 @@
             </node>
         </group>
     </group>
+
+    <node name="attrition" pkg="wta_distributed_optimization" type="attrition.py" output="screen"/>
+
 
     <node if="$(arg run_rviz)" name="rviz_node" pkg="rviz" type="rviz" output="log" args="-d $(find wta_distributed_optimization)/rviz/wta_demo.rviz"/>
 

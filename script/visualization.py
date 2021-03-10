@@ -115,17 +115,6 @@ class WTAVisualizer():
         self.marker_pub.publish(self.odom_marker)
 
     def visualize_communication(self, my_number, communicated_agent_number, agent1_point, dual=False, brighten=False):
-        # my_name_target_frame = 'agent_' + str(my_number) + '/odom'
-        # my_name_parent_frame = 'agent_' + str(my_number) + '/base_footprint'
-        #
-        # try:
-        #     trans = self.tfBuffer.lookup_transform(my_name_target_frame, my_name_parent_frame, rospy.Time())
-        # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        #     return
-        #
-        # agent1_point = Point()
-        # agent1_point.x = trans.transform.translation.x
-        # agent1_point.y = trans.transform.translation.y
 
         agent_target_frame = 'agent_' + str(communicated_agent_number) + '/odom'
         agent_parent_frame = 'agent_' + str(communicated_agent_number) + '/base_footprint'
@@ -141,12 +130,12 @@ class WTAVisualizer():
         agent2_point.x = trans.transform.translation.x
         agent2_point.y = trans.transform.translation.y
 
-        # rgb_value = self.arrow_rgb
-
         if dual:
             rgb_value = [1, 1, 0]
             agent1_point.z += 0.01
             agent2_point.z += 0.01
+            agent1_point.y += 0.01
+            agent2_point.y += 0.01
         else:
             rgb_value = self.arrow_rgb
 

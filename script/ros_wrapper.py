@@ -104,7 +104,7 @@ class WTAOptimization():
         self.opt.useScalars()  # TODO: add documentation
         self.a = self.opt.xBlocks[self.my_number]  # lower boundary of primal block (included)
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
-        # self.optimization()
+        self.optimization()
 
     def primal_callback(self, msg, vehicle_num):
         if vehicle_num in self.weapon_list:
@@ -188,6 +188,7 @@ class WTAOptimization():
         self.visualization.visualize_target()
         for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
             self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=False, brighten=False)
+            self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=False)
 
     def mocapPoseCallback(self, msg):
         self.agent_position = msg.pose.position

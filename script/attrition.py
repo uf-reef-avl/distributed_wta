@@ -17,7 +17,7 @@ def quad_callback(req):
     vel_pub = rospy.Publisher(topic_name, Twist, queue_size=10)
     message = Twist()
     message.linear.x = 0
-    message.angular.z = 0.5
+    message.angular.z = 1.5
 
     for i in range(0, 100):
         vel_pub.publish(message)
@@ -28,7 +28,6 @@ def quad_callback(req):
 
 if __name__ == "__main__":
     rospy.init_node('attrition', anonymous=False)
-    print('test')
 
     s = rospy.Service('kill_quad', kill_quad, quad_callback)
     rospy.spin()
