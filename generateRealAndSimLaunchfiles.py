@@ -162,7 +162,7 @@ def generate_params_yaml_file(target_number, weapon_number):
         on_diag = random.uniform(0,1) * i + i
         on_diag = on_diag % 5
         on_diag = on_diag * random.choice([-1.,1.])
-        file_str+=  "{position: ["+str(on_diag*0.5)+"," +str(on_diag)+"," +str(random.uniform(0,0.5))+"]},"
+        file_str+=  "{position: ["+str(random.uniform(-4,4))+"," +str(random.uniform(-4,4))+"," +str(random.uniform(0,0.5))+"]},"
     file_str +=  r"""]
     
 Pk: """
