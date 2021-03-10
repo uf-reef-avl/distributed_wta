@@ -1,26 +1,27 @@
 <launch>
 
-    <arg name="first_agent"  default="agent_00"/>
-    <arg name="second_agent"  default="agent_01"/>
-    <arg name="third_agent"  default="agent_02"/>
-    <arg name="fourth_agent"  default="agent_03"/>
+    <arg name="first_agent"  default="agent_0"/>
+    <arg name="second_agent"  default="agent_1"/>
+    <arg name="third_agent"  default="agent_2"/>
+    <arg name="fourth_agent"  default="agent_3"/>
     <arg name="model" default="burger"/>
 
-    <arg name="run_gazebo" default="true"/>
+    <arg name="run_gazebo" default="false"/>
     <arg name="node_start_delay" default="0.0" />
 
-    <arg name="run_rviz" default="true"/>
+    <arg name="run_rviz" default="false"/>
     <arg name="record_bag" default="false"/>
     <arg name="bag_name" default="test"/>
 
     <arg name="num_weapons" default="4"/>
     <arg name="num_targets" default="3"/>
 
+    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
+
     <group ns="$(arg first_agent)">
         <arg name="agent_name" default="$(arg first_agent)"/>
         <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
               launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
-            <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
@@ -30,6 +31,7 @@
                 delta: 0.01
                 #rho:
                 gamma: 1
+                is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
         </node>
@@ -60,7 +62,6 @@
         <arg name="agent_name" default="$(arg second_agent)"/>
         <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
-            <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
@@ -70,6 +71,7 @@
                 delta: 0.01
                 #rho:
                 gamma: 1
+                is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
         </node>
@@ -100,7 +102,6 @@
         <arg name="agent_name" default="$(arg third_agent)"/>
         <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
-            <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml" />
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
@@ -110,6 +111,7 @@
                 delta: 0.01
                 #rho:
                 gamma: 1
+                is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
         </node>
@@ -140,7 +142,6 @@
         <arg name="agent_name" default="$(arg fourth_agent)"/>
         <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
               launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
-            <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
@@ -150,6 +151,7 @@
                 delta: 0.01
                 #rho:
                 gamma: 1
+                is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
         </node>

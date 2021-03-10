@@ -53,8 +53,6 @@ class WTAOptimization():
         # my_namespace = "robot01" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
         self.my_number = int(
             self.my_namespace.replace("/", "").split("_")[-1])  # number of weapons/agent. Obtained from ROS Param
-        print "my number is " + str(self.my_number)
-        print self.my_namespace
 
         ## This line will generate a list of all the primal agents we have. Originally intended to have 2 primal and
         # 1 dual agents for each target. Weapons list if similar but the agent on which this node will run on will be
@@ -63,6 +61,7 @@ class WTAOptimization():
         self.my_dual_variable_idx = self.my_number
         self.weapon_list = range(0, self.num_weapons)
         self.weapon_list.pop(self.my_number)
+        self.attrition_dict = dict.fromkeys(self.weapon_list, rospy.get_time()) # create a dictionary of agents and times for the last time they heard from agents
 
         self.agent_position = Point()
         if self.is_simulated:
@@ -105,7 +104,7 @@ class WTAOptimization():
         self.opt.useScalars()  # TODO: add documentation
         self.a = self.opt.xBlocks[self.my_number]  # lower boundary of primal block (included)
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
-        self.optimization()
+        # self.optimization()
 
     def primal_callback(self, msg, vehicle_num):
         if vehicle_num in self.weapon_list:
@@ -150,7 +149,7 @@ class WTAOptimization():
                 pub_msg.data = self.x[self.my_primal_variable_idx]  # publishes just the block
                 self.primal_pub.publish(pub_msg)
                 for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
-                    self.visualization.visualize_communication(self.my_number, i, dual=False, brighten=True)
+                    self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=False, brighten=True)
 
             assignment = np.unravel_index(np.argmax(self.x[self.my_primal_variable_idx]), self.x.shape)  # get the index
             # print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
@@ -167,7 +166,7 @@ class WTAOptimization():
         if np.random.normal(loc=0, scale=1) < self.dual_pub_probability:
             self.dual_pub.publish(pub_msg)
             for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
-                self.visualization.visualize_communication(self.my_number, i, dual=True, brighten=True)
+                self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
 
     def pose_msg_from_dict(self, target_dictionary):
         pose_msg = PoseStamped()

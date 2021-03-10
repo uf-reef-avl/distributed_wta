@@ -42,7 +42,7 @@ class WTAVisualizer():
         self.odom_marker.color = odom_color
 
     def initialize_target_markers(self, target_position):
-        self.target_marker.color = ColorRGBA(1, 0, 0, 1)
+        self.target_marker.color = ColorRGBA(1, 1, 1, 1)
         self.target_marker.header.frame_id = "/map"
         # self.target_marker.type = Marker.POINTS
         self.target_marker.type = Marker.MESH_RESOURCE
