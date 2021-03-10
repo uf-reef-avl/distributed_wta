@@ -163,7 +163,8 @@ class WTAOptimization():
         self.mu[self.my_number] = np.copy(muUpdated)
         pub_msg = Float64()
         pub_msg.data = self.mu[self.my_number]
-        if np.random.normal(loc=0, scale=1) < self.dual_pub_probability:
+        pub_prob = np.random.uniform(low=0, high=1)
+        if pub_prob <= self.dual_pub_probability:
             self.dual_pub.publish(pub_msg)
             for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
                 self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
