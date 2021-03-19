@@ -16,7 +16,7 @@
     <arg name="num_weapons" default="4"/>
     <arg name="num_targets" default="3"/>
 
-    <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
+    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
 
     <group ns="$(arg first_agent)">
         <arg name="agent_name" default="$(arg first_agent)"/>
@@ -27,7 +27,7 @@
             <rosparam>
                 max_iter: 1000
                 primal_pub_prob: 0.5
-                dual_pub_prob: 0.5
+                dual_pub_prob: 0.75
                 delta: 0.01
                 #rho:
                 gamma: 1
@@ -67,7 +67,7 @@
             <rosparam>
                 max_iter: 1000
                 primal_pub_prob: 0.5
-                dual_pub_prob: 0.5
+                dual_pub_prob: 0.75
                 delta: 0.01
                 #rho:
                 gamma: 1
@@ -107,7 +107,7 @@
             <rosparam>
                 max_iter: 1000
                 primal_pub_prob: 0.5
-                dual_pub_prob: 0.5
+                dual_pub_prob: 0.75
                 delta: 0.01
                 #rho:
                 gamma: 1
@@ -147,7 +147,7 @@
             <rosparam>
                 max_iter: 1000
                 primal_pub_prob: 0.5
-                dual_pub_prob: 0.5
+                dual_pub_prob: 0.75
                 delta: 0.01
                 #rho:
                 gamma: 1

@@ -7,8 +7,7 @@ accordingly.
 import rospy
 import numpy as np
 import scipy.linalg as la
-from std_msgs.msg import Float64
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, Float64
 from geometry_msgs.msg import PoseStamped, Point
 import inputs
 import communicate
@@ -21,15 +20,17 @@ from nav_msgs.msg import Odometry
 class WTAOptimization():
     def __init__(self):
 
-        self.num_weapons = rospy.get_param("~num_weapons", 3)  # number of weapons/agent. Obtained from ROS Param
-        self.num_targets = rospy.get_param("~num_targets", 2)  # number of weapons/agent. Obtained from ROS Param
+        self.num_weapons = rospy.get_param("~num_weapons", 4)  # number of weapons/agent. Obtained from ROS Param
+        self.num_targets = rospy.get_param("~num_targets", 3)  # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("~max_iter", 100)  # number of weapons/agent. Obtained from ROS Param
         self.primal_pub_probability = rospy.get_param("~primal_pub_prob",
                                                       0.2)  # number of weapons/agent. Obtained from ROS Param
         self.dual_pub_probability = rospy.get_param("~dual_pub_prob",
                                                     0.2)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
-        self.is_simulated = rospy.get_param("~is_simulated")  # Tells if a turtlebot is simulated or real
+        self.attrition_threshold = rospy.get_param("~attrition_threshold", 10)
+        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2)
+        self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
         assert Pk.shape[1] == self.num_targets
@@ -50,9 +51,8 @@ class WTAOptimization():
         # topics to publish and subscribe to.
 
         self.my_namespace = rospy.get_namespace()  # number of weapons/agent. Obtained from ROS Param
-        # my_namespace = "robot01" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
-        self.my_number = int(
-            self.my_namespace.replace("/", "").split("_")[-1])  # number of weapons/agent. Obtained from ROS Param
+        # self.my_namespace = "robot_1" # adding for  debugging # number of weapons/agent. Obtained from ROS Param
+        self.my_number = int(self.my_namespace.replace("/", "").split("_")[-1])  # number of weapons/agent. Obtained from ROS Param
 
         ## This line will generate a list of all the primal agents we have. Originally intended to have 2 primal and
         # 1 dual agents for each target. Weapons list if similar but the agent on which this node will run on will be
@@ -61,7 +61,9 @@ class WTAOptimization():
         self.my_dual_variable_idx = self.my_number
         self.weapon_list = range(0, self.num_weapons)
         self.weapon_list.pop(self.my_number)
+        self.attrition_list = []
         self.attrition_dict = dict.fromkeys(self.weapon_list, rospy.get_time()) # create a dictionary of agents and times for the last time they heard from agents
+        self.last_checked = rospy.get_time()
 
         self.agent_position = Point()
         if self.is_simulated:
@@ -71,14 +73,16 @@ class WTAOptimization():
 
         for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
             primal_topic = "/primal_" + str(i)
-            rospy.Subscriber(primal_topic, Float32MultiArray, self.primal_callback, i)
+            rospy.Subscriber(primal_topic, Float32MultiArray, self.primal_callback, i, queue_size=1)
             dual_topic = "/dual_" + str(i)
-            rospy.Subscriber(dual_topic, Float64, self.dual_callback, i)
+            rospy.Subscriber(dual_topic, Float64, self.dual_callback, i, queue_size=1)
             # Kat - agents only need to share their primal block values and dual scalar value. 
         pub_topic = "/primal_" + str(self.my_number)
         self.primal_pub = rospy.Publisher(pub_topic, Float32MultiArray, queue_size=10)
         pub_topic = "/dual_" + str(self.my_number)
         self.dual_pub = rospy.Publisher(pub_topic, Float64, queue_size=10)
+
+        self.convdiff_pub = rospy.Publisher("convdiff", Float64, queue_size=10)
 
         self.goal_pose_pub = rospy.Publisher("goal_pose", PoseStamped, queue_size=10)
 
@@ -110,6 +114,8 @@ class WTAOptimization():
         if vehicle_num in self.weapon_list:
             self.weapon_list.pop(self.weapon_list.index(vehicle_num))
 
+        self.attrition_dict[vehicle_num] = rospy.get_time()
+        # print str(vehicle_num) + "      " +str(self.attrition_dict[vehicle_num])
         if not self.weapon_list:
             self.delay = 0.05
             self.update_dual_flag = True
@@ -123,14 +129,15 @@ class WTAOptimization():
         self.optimization()
 
     def dual_callback(self, msg, vehicle_num):
+        self.attrition_dict[vehicle_num] = rospy.get_time() #last heard from vehicle
         self.mu[vehicle_num] = msg.data
         self.weapon_list = range(0, self.num_weapons)
         self.weapon_list.pop(self.my_number)
 
     def optimization(self):
-        convdiff = 1
+        # convdiff = 1
         k = 0
-        while convdiff > 10 ** -6 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
+        while convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
             if self.update_dual_flag:
                 self.update_duals()
                 self.update_dual_flag = False
@@ -140,7 +147,6 @@ class WTAOptimization():
             self.x = np.copy(xUpdated)
             k += 1
             time.sleep(self.delay)
-            # pub_prob = abs(np.random.normal(loc=0, scale=1))
             pub_prob = np.random.uniform(low=0, high=1)
             if pub_prob <= self.primal_pub_probability:
                 # print( "Robot " + str(self.my_number) + " primal prob " + str(self.primal_pub_probability))
@@ -151,12 +157,18 @@ class WTAOptimization():
                 for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
                     self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=False, brighten=True)
 
+            convdiff_msg = Float64()
+            convdiff_msg.data = convdiff
+            self.convdiff_pub.publish(convdiff_msg)
             assignment = np.unravel_index(np.argmax(self.x[self.my_primal_variable_idx]), self.x.shape)  # get the index
             # print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
             # print "Robot " + str(self.my_number) + " primal " + str(self.x[self.my_primal_variable_idx] )
             # print "Robot " + str(self.my_number) + " convergence " + str(convdiff) + " number of steps " + str(k)
             setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0] - 1])
             self.goal_pose_pub.publish(setpoint_msg)
+            if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
+                self.check_attrition()
+                self.last_checked = rospy.get_time()
 
     def update_duals(self):
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
@@ -200,6 +212,19 @@ class WTAOptimization():
         for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
             self.visualization.visualize_communication(self.my_number, i, self.agent_position,dual=False, brighten=False)
 
+    def check_attrition(self):
+        for agent in self.attrition_dict:
+            agent_time = self.attrition_dict[agent]
+            if rospy.get_time() - agent_time > self.attrition_threshold:
+                print "Robot " + str(self.my_number) + ": Oh no! They got to Agent " + str(agent) + " I havent heard in " + str(round(rospy.get_time() - agent_time, 2)) + " seconds"
+                idx = range(agent * self.num_targets, (agent + 1) * self.num_targets)
+                self.x[idx] = np.zeros(self.num_targets)
+                self.mu[agent] = 0
+                self.attrition_list.append(agent)
+                self.weapon_list.pop(self.weapon_list.index(agent))
+#                 in check attrition, I need to remove the agent from the my weapon list.. that way it will get more dual updates!
+#                   Also vary the way parameters
+#                   Decrease the number of time it checks
 
 if __name__ == '__main__':
     rospy.init_node('Distributed_WTA', anonymous=False)
