@@ -31,6 +31,10 @@ class WTAOptimization():
         self.attrition_threshold = rospy.get_param("~attrition_threshold", 10)
         self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
+        self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
+        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 2)  # Publishes primal and dual agents for plotting
+        self.delay_lower_bound = rospy.get_param("~delay_lower_bound", 0.5)  # Publishes primal and dual agents for plotting
+
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
         assert Pk.shape[1] == self.num_targets
@@ -39,7 +43,7 @@ class WTAOptimization():
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
         Pk = np.append(Pk_att_col, Pk, 1)
-        V = np.ones(self.num_targets)
+        V = np.ones(self.num_targets) # TODO: Get this from a param file!
         V = np.append(0, V)
         self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V)
 
@@ -65,6 +69,11 @@ class WTAOptimization():
         self.attrition_dict = dict.fromkeys(self.weapon_list, rospy.get_time()) # create a dictionary of agents and times for the last time they heard from agents
         self.last_checked = rospy.get_time()
 
+        self.last_primal_comm = rospy.get_time()
+        self.last_dual_comm = rospy.get_time()
+        self.primal_comm_delay = np.random.uniform(low=self.delay_lower_bound, high=self.delay_upper_bound)
+        self.dual_comm_delay = np.random.uniform(low=self.delay_lower_bound, high=self.delay_upper_bound)
+
         self.agent_position = Point()
         if self.is_simulated:
             rospy.Subscriber("odom", Odometry, self.odom_callback)
@@ -82,7 +91,10 @@ class WTAOptimization():
         pub_topic = "/dual_" + str(self.my_number)
         self.dual_pub = rospy.Publisher(pub_topic, Float64, queue_size=10)
 
-        self.convdiff_pub = rospy.Publisher("convdiff", Float64, queue_size=10)
+        if self.publishing_plotting:
+            self.convdiff_pub = rospy.Publisher("convdiff", Float64, queue_size=10)
+            self.primal_plotting = rospy.Publisher("primal_plotting", Float32MultiArray, queue_size=10)
+            self.dual_plotting = rospy.Publisher("dual_plotting", Float64, queue_size=10)
 
         self.goal_pose_pub = rospy.Publisher("goal_pose", PoseStamped, queue_size=10)
 
@@ -135,7 +147,7 @@ class WTAOptimization():
         self.weapon_list.pop(self.my_number)
 
     def optimization(self):
-        # convdiff = 1
+        convdiff = 1
         k = 0
         while convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
             if self.update_dual_flag:
@@ -147,39 +159,56 @@ class WTAOptimization():
             self.x = np.copy(xUpdated)
             k += 1
             time.sleep(self.delay)
-            pub_prob = np.random.uniform(low=0, high=1)
-            if pub_prob <= self.primal_pub_probability:
-                # print( "Robot " + str(self.my_number) + " primal prob " + str(self.primal_pub_probability))
+
+            primal_msg = Float32MultiArray()
+            primal_msg.data = self.x[self.my_primal_variable_idx]
+            if self.publishing_plotting:
+                self.primal_plotting.publish(primal_msg)
+                convdiff_msg = Float64()
+                convdiff_msg.data = convdiff
+                self.convdiff_pub.publish(convdiff_msg)
+
+            # pub_prob = np.random.uniform(low=0, high=1)
+            # if pub_prob <= self.primal_pub_probability:
+            if rospy.get_time() - self.last_primal_comm > self.primal_comm_delay:
+                # print( "Robot " + str(self.my_number) + " primal prob " + str(self.primal_comm_delay))
                 # print( "Robot " + str(self.my_number) + " prob " + str(pub_prob))
-                pub_msg = Float32MultiArray()
-                pub_msg.data = self.x[self.my_primal_variable_idx]  # publishes just the block
-                self.primal_pub.publish(pub_msg)
+                self.primal_pub.publish(primal_msg)
                 for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
                     self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=False, brighten=True)
 
-            convdiff_msg = Float64()
-            convdiff_msg.data = convdiff
-            self.convdiff_pub.publish(convdiff_msg)
+                self.last_primal_comm = rospy.get_time()
+                self.primal_comm_delay = np.random.uniform(low=self.delay_lower_bound, high=self.delay_upper_bound)
+
             assignment = np.unravel_index(np.argmax(self.x[self.my_primal_variable_idx]), self.x.shape)  # get the index
             # print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
             # print "Robot " + str(self.my_number) + " primal " + str(self.x[self.my_primal_variable_idx] )
             # print "Robot " + str(self.my_number) + " convergence " + str(convdiff) + " number of steps " + str(k)
             setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0] - 1])
             self.goal_pose_pub.publish(setpoint_msg)
-            if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
-                self.check_attrition()
-                self.last_checked = rospy.get_time()
+            # if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
+            #     self.check_attrition()
+            #     self.last_checked = rospy.get_time()
 
     def update_duals(self):
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
         self.mu[self.my_number] = np.copy(muUpdated)
         pub_msg = Float64()
         pub_msg.data = self.mu[self.my_number]
-        pub_prob = np.random.uniform(low=0, high=1)
-        if pub_prob <= self.dual_pub_probability:
+
+        if self.publishing_plotting:
+            self.dual_plotting.publish(pub_msg)
+
+        # pub_prob = np.random.uniform(low=0, high=1)
+        # if pub_prob <= self.dual_pub_probability:
+        if rospy.get_time() - self.last_dual_comm > self.dual_comm_delay:
             self.dual_pub.publish(pub_msg)
             for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
                 self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
+
+            self.last_dual_comm = rospy.get_time()
+            self.dual_comm_delay = np.random.uniform(low=self.delay_lower_bound, high=self.delay_upper_bound)
+
 
     def pose_msg_from_dict(self, target_dictionary):
         pose_msg = PoseStamped()
