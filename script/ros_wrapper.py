@@ -39,11 +39,13 @@ class WTAOptimization():
         assert Pk.shape[0] == self.num_weapons
         assert Pk.shape[1] == self.num_targets
 
+        # V = np.random.uniform(low=5, high=10, size=(1, self.num_targets))
+        V = np.array(rospy.get_param("/V"))
         # For attritiion, I am going to increase the number targets.
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
         Pk = np.append(Pk_att_col, Pk, 1)
-        V = np.ones(self.num_targets) # TODO: Get this from a param file!
+        # V = np.ones(self.num_targets) # TODO: Get this from a param file!
         V = np.append(0, V)
         self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V)
 
