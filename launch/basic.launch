@@ -17,7 +17,7 @@
     <arg name="num_weapons" default="5"/>
     <arg name="num_targets" default="4"/>
 
-    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
+    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position_sim.yaml"/>
 
     <group ns="$(arg first_agent)">
         <arg name="agent_name" default="$(arg first_agent)"/>
