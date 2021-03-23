@@ -7,7 +7,7 @@ accordingly.
 import rospy
 import numpy as np
 import scipy.linalg as la
-from std_msgs.msg import Float32MultiArray, Float64
+from std_msgs.msg import Float32MultiArray, Float64, Int64
 from geometry_msgs.msg import PoseStamped, Point
 import inputs
 import communicate
@@ -41,11 +41,11 @@ class WTAOptimization():
 
         # V = np.random.uniform(low=5, high=10, size=(1, self.num_targets))
         V = np.array(rospy.get_param("/V"))
+        print V.shape[0] == self.num_targets
         # For attritiion, I am going to increase the number targets.
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
         Pk = np.append(Pk_att_col, Pk, 1)
-        # V = np.ones(self.num_targets) # TODO: Get this from a param file!
         V = np.append(0, V)
         self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V)
 
@@ -97,6 +97,7 @@ class WTAOptimization():
             self.convdiff_pub = rospy.Publisher("convdiff", Float64, queue_size=10)
             self.primal_plotting = rospy.Publisher("primal_plotting", Float32MultiArray, queue_size=10)
             self.dual_plotting = rospy.Publisher("dual_plotting", Float64, queue_size=10)
+            self.assignment_pub = rospy.Publisher("assignment", Int64, queue_size=10)
 
         self.goal_pose_pub = rospy.Publisher("goal_pose", PoseStamped, queue_size=10)
 
@@ -164,11 +165,6 @@ class WTAOptimization():
 
             primal_msg = Float32MultiArray()
             primal_msg.data = self.x[self.my_primal_variable_idx]
-            if self.publishing_plotting:
-                self.primal_plotting.publish(primal_msg)
-                convdiff_msg = Float64()
-                convdiff_msg.data = convdiff
-                self.convdiff_pub.publish(convdiff_msg)
 
             # pub_prob = np.random.uniform(low=0, high=1)
             # if pub_prob <= self.primal_pub_probability:
@@ -188,6 +184,16 @@ class WTAOptimization():
             # print "Robot " + str(self.my_number) + " convergence " + str(convdiff) + " number of steps " + str(k)
             setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0] - 1])
             self.goal_pose_pub.publish(setpoint_msg)
+
+            if self.publishing_plotting:
+                self.primal_plotting.publish(primal_msg)
+                convdiff_msg = Float64()
+                convdiff_msg.data = convdiff
+                self.convdiff_pub.publish(convdiff_msg)
+                assignment_msg = Int64()
+                assignment_msg.data = assignment[0]
+                self.assignment_pub.publish(assignment_msg)
+
             # if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
             #     self.check_attrition()
             #     self.last_checked = rospy.get_time()
