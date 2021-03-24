@@ -82,7 +82,7 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     <arg name="model" default="burger"/>
     <arg name="run_gazebo" default="true"/>
     <arg name="node_start_delay" default="0.0" />
-    <arg name="run_rviz" default="true"/>
+    <arg name="run_rviz" default="false"/>
     <arg name="record_bag" default="false"/>
     <arg name="bag_name" default="test"/>
     <arg name="num_weapons" default="""+"\""+str(weapon_number)+"\""+r"""/>
@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     if target_number!= None and weapon_number!= None and real_robots!= None:
         generate_sim_turtlebot_launch_file(real_robots,target_number, weapon_number)
-        generate_params_yaml_file(target_number, weapon_number)
+        #generate_params_yaml_file(target_number, weapon_number)
         for i in range(real_robots):
             generate_real_turtlebot_launch_file(i,target_number, weapon_number)
 
