@@ -41,7 +41,7 @@ class WTAOptimization():
 
         # V = np.random.uniform(low=5, high=10, size=(1, self.num_targets))
         V = np.array(rospy.get_param("/V"))
-        print V.shape[0] == self.num_targets
+        assert V.shape[0] == self.num_targets
         # For attritiion, I am going to increase the number targets.
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
@@ -50,6 +50,8 @@ class WTAOptimization():
         self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V)
 
         self.visualization = WTAVisualizer(self.target_positions)
+
+        self.running_while_loop = False
 
         ## Assigning agent numbers
         # In order for the agent to assign weapon/agent id by themselves, we will rely on the ROS namespace which
@@ -123,7 +125,6 @@ class WTAOptimization():
         self.opt.useScalars()  # TODO: add documentation
         self.a = self.opt.xBlocks[self.my_number]  # lower boundary of primal block (included)
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
-        self.optimization()
 
     def primal_callback(self, msg, vehicle_num):
         if vehicle_num in self.weapon_list:
@@ -138,10 +139,12 @@ class WTAOptimization():
             self.weapon_list.pop(self.my_number)
 
         self.stop_optimization = True
-        idx = range(vehicle_num * self.num_targets, (vehicle_num + 1) * self.num_targets)
-        self.x[idx] = msg.data
+
+        while not self.running_while_loop:
+            idx = range(vehicle_num * self.num_targets, (vehicle_num + 1) * self.num_targets)
+            self.x[idx] = msg.data
+            break
         self.stop_optimization = False
-        self.optimization()
 
     def dual_callback(self, msg, vehicle_num):
         self.attrition_dict[vehicle_num] = rospy.get_time() #last heard from vehicle
@@ -152,7 +155,8 @@ class WTAOptimization():
     def optimization(self):
         convdiff = 1
         k = 0
-        while convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
+        while convdiff > 10 ** -8 and not self.stop_optimization and k < self.k_max:
+            self.running_while_loop = True
             if self.update_dual_flag:
                 self.update_duals()
                 self.update_dual_flag = False
@@ -197,6 +201,8 @@ class WTAOptimization():
             # if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
             #     self.check_attrition()
             #     self.last_checked = rospy.get_time()
+
+            self.running_while_loop = False
 
     def update_duals(self):
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
@@ -265,5 +271,9 @@ class WTAOptimization():
 
 if __name__ == '__main__':
     rospy.init_node('Distributed_WTA', anonymous=False)
-    obj = WTAOptimization()
-    rospy.spin()
+    wtaDemo = WTAOptimization()
+    loop_rate = rospy.Rate(100)
+
+    while not rospy.is_shutdown():
+        wtaDemo.optimization()
+        loop_rate.sleep()
