@@ -156,6 +156,7 @@ class WTAOptimization():
         self.weapon_list.pop(self.my_number)
 
     def optimization(self):
+        self.convdiff = 1
         k = 0
         while self.convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
             self.running_while_loop = True
