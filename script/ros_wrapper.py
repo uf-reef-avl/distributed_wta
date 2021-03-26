@@ -28,7 +28,7 @@ class WTAOptimization():
         self.dual_pub_probability = rospy.get_param("~dual_pub_prob",
                                                     0.2)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
-        self.attrition_threshold = rospy.get_param("~attrition_threshold", 10)
+        self.attrition_threshold = rospy.get_param("~attrition_threshold", 7)
         self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
@@ -274,11 +274,10 @@ class WTAOptimization():
                 idx = range(agent * self.num_targets, (agent + 1) * self.num_targets)
                 self.x[idx] = np.zeros(self.num_targets)
                 self.mu[agent] = 0
-                self.attrition_list.append(agent)
-                self.weapon_list.pop(self.weapon_list.index(agent))
-#                 in check attrition, I need to remove the agent from the my weapon list.. that way it will get more dual updates!
-#                   Also vary the way parameters
-#                   Decrease the number of time it checks
+                if agent not in self.attrition_list:
+                    self.attrition_list.append(agent)
+                    self.weapon_list.pop(self.weapon_list.index(agent))
+
 
 if __name__ == '__main__':
     rospy.init_node('Distributed_WTA', anonymous=False)

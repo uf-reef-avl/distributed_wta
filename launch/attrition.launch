@@ -1,0 +1,229 @@
+<launch>
+
+    <arg name="first_agent"  default="agent_0"/>
+    <arg name="second_agent"  default="agent_1"/>
+    <arg name="third_agent"  default="agent_2"/>
+    <arg name="fourth_agent"  default="agent_3"/>
+    <arg name="fifth_agent"  default="agent_4"/>
+    <arg name="model" default="burger"/>
+
+    <arg name="run_gazebo" default="true"/>
+    <arg name="node_start_delay" default="0.0" />
+
+    <arg name="run_rviz" default="true"/>
+    <arg name="record_bag" default="true"/>
+    <arg name="bag_name" default="test"/>
+
+    <arg name="num_weapons" default="5"/>
+    <arg name="num_targets" default="4"/>
+
+    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position_attrition.yaml"/>
+
+    <group ns="$(arg first_agent)">
+        <arg name="agent_name" default="$(arg first_agent)"/>
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+              launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+            <param name="num_weapons"     value="$(arg num_weapons)"/>
+            <param name="num_targets"     value="$(arg num_targets)"/>
+            <rosparam>
+                max_iter: 1000
+                primal_pub_prob: 0.05
+                dual_pub_prob: 0.05
+                delta: 0.01
+                #rho:
+                gamma: 1
+                is_simulated: True
+            </rosparam>
+            <remap from="goal_pose" to="setpoint"/>
+        </node>
+
+        <group if="$(arg run_gazebo)">
+            <arg name="x_pos" default="0.0"/>
+            <arg name="y_pos" default="0.0"/>
+            <arg name="z_pos" default="0.0"/>
+            <arg name="yaw"   default="0.0"/>
+            <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+            <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+                <param name="publish_frequency" type="double" value="50.0" />
+                <param name="tf_prefix" value="$(arg agent_name)" />
+            </node>
+
+            <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="log" args="-urdf -model $(arg agent_name) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw) -param robot_description" />
+
+            <rosparam command="load" file="$(find turtlebot_pid)/config/turtlebot_param_sim.yaml"/>
+            <node name="controller" pkg="turtlebot_pid" type="turtlebot_pid_node" args="/$(arg agent_name)" output = "screen">
+                <remap from="turtle_pose" to="odom"/>
+                <remap from="turtle_goal" to="setpoint"/>
+                <remap from="turtle_velocity_publisher" to="cmd_vel"/>
+            </node>
+        </group>
+    </group>
+
+    <group ns="$(arg second_agent)">
+        <arg name="agent_name" default="$(arg second_agent)"/>
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+         launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+            <param name="num_weapons"     value="$(arg num_weapons)"/>
+            <param name="num_targets"     value="$(arg num_targets)"/>
+            <rosparam>
+                max_iter: 1000
+                primal_pub_prob: 0.05
+                dual_pub_prob: 0.05
+                delta: 0.01
+                #rho:
+                gamma: 1
+                is_simulated: True
+            </rosparam>
+            <remap from="goal_pose" to="setpoint"/>
+        </node>
+        <group if="$(arg run_gazebo)">
+            <arg name="x_pos" default="0.0"/>
+            <arg name="y_pos" default="10.0"/>
+            <arg name="z_pos" default="0.0"/>
+            <arg name="yaw"   default="0.0"/>
+            <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+            <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+                <param name="publish_frequency" type="double" value="50.0" />
+                <param name="tf_prefix" value="$(arg agent_name)" />
+            </node>
+
+            <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="log" args="-urdf -model $(arg agent_name) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw) -param robot_description" />
+
+            <rosparam command="load" file="$(find turtlebot_pid)/config/turtlebot_param_sim.yaml"/>
+            <node name="controller" pkg="turtlebot_pid" type="turtlebot_pid_node" args="/$(arg agent_name)" output = "screen">
+                <remap from="turtle_pose" to="odom"/>
+                <remap from="turtle_goal" to="setpoint"/>
+                <remap from="turtle_velocity_publisher" to="cmd_vel"/>
+            </node>
+        </group>
+    </group>
+
+    <group ns="$(arg third_agent)">
+        <arg name="agent_name" default="$(arg third_agent)"/>
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+         launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+            <param name="num_weapons"     value="$(arg num_weapons)"/>
+            <param name="num_targets"     value="$(arg num_targets)"/>
+            <rosparam>
+                max_iter: 1000
+                primal_pub_prob: 0.05
+                dual_pub_prob: 0.05
+                delta: 0.01
+                #rho:
+                gamma: 1
+                is_simulated: True
+            </rosparam>
+            <remap from="goal_pose" to="setpoint"/>
+        </node>
+        <group if="$(arg run_gazebo)">
+            <arg name="x_pos" default="10.0"/>
+            <arg name="y_pos" default="0.0"/>
+            <arg name="z_pos" default="0.0"/>
+            <arg name="yaw"   default="0.0"/>
+            <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+            <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+                <param name="publish_frequency" type="double" value="50.0" />
+                <param name="tf_prefix" value="$(arg agent_name)" />
+            </node>
+
+            <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="log" args="-urdf -model $(arg agent_name) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw) -param robot_description" />
+
+            <rosparam command="load" file="$(find turtlebot_pid)/config/turtlebot_param_sim.yaml"/>
+            <node name="controller" pkg="turtlebot_pid" type="turtlebot_pid_node" args="/$(arg agent_name)" output = "screen">
+                <remap from="turtle_pose" to="odom"/>
+                <remap from="turtle_goal" to="setpoint"/>
+                <remap from="turtle_velocity_publisher" to="cmd_vel"/>
+            </node>
+        </group>
+    </group>
+
+    <group ns="$(arg fourth_agent)">
+        <arg name="agent_name" default="$(arg fourth_agent)"/>
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+              launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+            <param name="num_weapons"     value="$(arg num_weapons)"/>
+            <param name="num_targets"     value="$(arg num_targets)"/>
+            <rosparam>
+                max_iter: 1000
+                primal_pub_prob: 0.05
+                dual_pub_prob: 0.05
+                delta: 0.01
+                #rho:
+                gamma: 1
+                is_simulated: True
+            </rosparam>
+            <remap from="goal_pose" to="setpoint"/>
+        </node>
+
+        <group if="$(arg run_gazebo)">
+            <arg name="x_pos" default="0.0"/>
+            <arg name="y_pos" default="-10.0"/>
+            <arg name="z_pos" default="0.0"/>
+            <arg name="yaw"   default="0.0"/>
+            <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+            <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="log">
+                <param name="publish_frequency" type="double" value="50.0" />
+                <param name="tf_prefix" value="$(arg agent_name)" />
+            </node>
+
+            <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="log" args="-urdf -model $(arg agent_name) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw) -param robot_description" />
+
+            <rosparam command="load" file="$(find turtlebot_pid)/config/turtlebot_param_sim.yaml"/>
+            <node name="controller" pkg="turtlebot_pid" type="turtlebot_pid_node" args="/$(arg agent_name)" output = "screen">
+                <remap from="turtle_pose" to="odom"/>
+                <remap from="turtle_goal" to="setpoint"/>
+                <remap from="turtle_velocity_publisher" to="cmd_vel"/>
+            </node>
+        </group>
+    </group>
+
+    <group ns="$(arg fifth_agent)">
+        <arg name="agent_name" default="$(arg fifth_agent)"/>
+        <node name="distributed_optimization" pkg="wta_distributed_optimization" type="ros_wrapper.py" output="screen"
+              launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+            <param name="num_weapons"     value="$(arg num_weapons)"/>
+            <param name="num_targets"     value="$(arg num_targets)"/>
+            <rosparam>
+                max_iter: 1000
+                primal_pub_prob: 0.05
+                dual_pub_prob: 0.05
+                delta: 0.01
+                #rho:
+                gamma: 1
+                is_simulated: True
+            </rosparam>
+            <remap from="goal_pose" to="setpoint"/>
+        </node>
+
+        <group if="$(arg run_gazebo)">
+            <arg name="x_pos" default="-10.0"/>
+            <arg name="y_pos" default="0.0"/>
+            <arg name="z_pos" default="0.0"/>
+            <arg name="yaw"   default="0.0"/>
+            <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+            <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="log">
+                <param name="publish_frequency" type="double" value="50.0" />
+                <param name="tf_prefix" value="$(arg agent_name)" />
+            </node>
+
+            <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="log" args="-urdf -model $(arg agent_name) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw) -param robot_description" />
+
+            <rosparam command="load" file="$(find turtlebot_pid)/config/turtlebot_param_sim.yaml"/>
+            <node name="controller" pkg="turtlebot_pid" type="turtlebot_pid_node" args="/$(arg agent_name)" output = "screen">
+                <remap from="turtle_pose" to="odom"/>
+                <remap from="turtle_goal" to="setpoint"/>
+                <remap from="turtle_velocity_publisher" to="cmd_vel"/>
+            </node>
+        </group>
+    </group>
+
+    <node name="attrition" pkg="wta_distributed_optimization" type="attrition.py" output="screen"/>
+
+
+    <node if="$(arg run_rviz)" name="rviz_node" pkg="rviz" type="rviz" output="log" args="-d $(find wta_distributed_optimization)/rviz/wta_demo.rviz"/>
+
+    <node if="$(arg record_bag)" name="record" pkg="rosbag" type="record" args="-a" output="screen"/>
+
+</launch>
