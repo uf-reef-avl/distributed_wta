@@ -209,9 +209,9 @@ class WTAOptimization():
                 self.assignment_pub.publish(assignment_msg)
                 self.self_convdiff_pub.publish(self_convdiff_msg)
 
-            # if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
-            #     self.check_attrition()
-            #     self.last_checked = rospy.get_time()
+            if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
+                self.check_attrition()
+                self.last_checked = rospy.get_time()
 
             self.running_while_loop = False
 
@@ -267,7 +267,7 @@ class WTAOptimization():
             self.visualization.visualize_communication(self.my_number, i, self.agent_position,dual=False, brighten=False)
 
     def check_attrition(self):
-        for agent in self.weapon_list:
+        for agent in self.attrition_dict:
             agent_time = self.attrition_dict[agent]
             if rospy.get_time() - agent_time > self.attrition_threshold:
                 print "Robot " + str(self.my_number) + ": Oh no! They got to Agent " + str(agent) + " I havent heard in " + str(round(rospy.get_time() - agent_time, 2)) + " seconds"
