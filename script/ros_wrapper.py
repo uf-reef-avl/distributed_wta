@@ -136,6 +136,8 @@ class WTAOptimization():
             self.update_dual_flag = True
             self.weapon_list = range(0, self.num_weapons)
             self.weapon_list.pop(self.my_number)
+            if self.attrition_list:
+                self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
 
         self.stop_optimization = True
         idx = range(vehicle_num * self.num_targets, (vehicle_num + 1) * self.num_targets)
@@ -148,6 +150,8 @@ class WTAOptimization():
         self.mu[vehicle_num] = msg.data
         self.weapon_list = range(0, self.num_weapons)
         self.weapon_list.pop(self.my_number)
+        if self.attrition_list:
+            self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
 
     def optimization(self):
         convdiff = 1
@@ -250,7 +254,7 @@ class WTAOptimization():
             self.visualization.visualize_communication(self.my_number, i, self.agent_position,dual=False, brighten=False)
 
     def check_attrition(self):
-        for agent in self.attrition_dict:
+        for agent in self.weapon_list:
             agent_time = self.attrition_dict[agent]
             if rospy.get_time() - agent_time > self.attrition_threshold:
                 print "Robot " + str(self.my_number) + ": Oh no! They got to Agent " + str(agent) + " I havent heard in " + str(round(rospy.get_time() - agent_time, 2)) + " seconds"
