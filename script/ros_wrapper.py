@@ -20,8 +20,8 @@ from nav_msgs.msg import Odometry
 class WTAOptimization():
     def __init__(self):
 
-        self.num_weapons = rospy.get_param("~num_weapons", 4)  # number of weapons/agent. Obtained from ROS Param
-        self.num_targets = rospy.get_param("~num_targets", 3)  # number of weapons/agent. Obtained from ROS Param
+        self.num_weapons = rospy.get_param("~num_weapons", 5)  # number of weapons/agent. Obtained from ROS Param
+        self.num_targets = rospy.get_param("~num_targets", 4)  # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("~max_iter", 100)  # number of weapons/agent. Obtained from ROS Param
         self.primal_pub_probability = rospy.get_param("~primal_pub_prob",
                                                       0.2)  # number of weapons/agent. Obtained from ROS Param
@@ -41,7 +41,7 @@ class WTAOptimization():
 
         # V = np.random.uniform(low=5, high=10, size=(1, self.num_targets))
         V = np.array(rospy.get_param("/V"))
-        print V.shape[0] == self.num_targets
+        assert V.shape[0] == self.num_targets
         # For attritiion, I am going to increase the number targets.
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
@@ -51,6 +51,8 @@ class WTAOptimization():
 
         self.visualization = WTAVisualizer(self.target_positions)
 
+        self.running_while_loop = False
+        self.convdiff = 1
         ## Assigning agent numbers
         # In order for the agent to assign weapon/agent id by themselves, we will rely on the ROS namespace which
         # will be declared in the launch file. The namespace can be used to identify the agent and also establish the
@@ -95,6 +97,7 @@ class WTAOptimization():
 
         if self.publishing_plotting:
             self.convdiff_pub = rospy.Publisher("convdiff", Float64, queue_size=10)
+            self.self_convdiff_pub = rospy.Publisher("self_convdiff", Float64, queue_size=10)
             self.primal_plotting = rospy.Publisher("primal_plotting", Float32MultiArray, queue_size=10)
             self.dual_plotting = rospy.Publisher("dual_plotting", Float64, queue_size=10)
             self.assignment_pub = rospy.Publisher("assignment", Int64, queue_size=10)
@@ -123,7 +126,6 @@ class WTAOptimization():
         self.opt.useScalars()  # TODO: add documentation
         self.a = self.opt.xBlocks[self.my_number]  # lower boundary of primal block (included)
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
-        self.optimization()
 
     def primal_callback(self, msg, vehicle_num):
         if vehicle_num in self.weapon_list:
@@ -140,10 +142,14 @@ class WTAOptimization():
                 self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
 
         self.stop_optimization = True
+
+        # while self.running_while_loop:
+        #     time.sleep(0.001)
+            # print "Robot " + str(self.my_number) + " waiting for the while loop"
+
         idx = range(vehicle_num * self.num_targets, (vehicle_num + 1) * self.num_targets)
         self.x[idx] = msg.data
         self.stop_optimization = False
-        self.optimization()
 
     def dual_callback(self, msg, vehicle_num):
         self.attrition_dict[vehicle_num] = rospy.get_time() #last heard from vehicle
@@ -154,22 +160,26 @@ class WTAOptimization():
             self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
 
     def optimization(self):
-        convdiff = 1
+        self.convdiff = 1
         k = 0
-        while convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
+        while self.convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
+            self.running_while_loop = True
             if self.update_dual_flag:
                 self.update_duals()
                 self.update_dual_flag = False
 
             xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number, self.inputs)
-            convdiff = la.norm(self.x - xUpdated)
+            self.convdiff = la.norm(self.x - xUpdated)
+
+            self_convdiff_msg = Float64()
+            self_convdiff_msg.data = la.norm(self.x[self.my_primal_variable_idx] - xUpdated[self.my_primal_variable_idx])
+
             self.x = np.copy(xUpdated)
             k += 1
             time.sleep(self.delay)
 
             primal_msg = Float32MultiArray()
             primal_msg.data = self.x[self.my_primal_variable_idx]
-
             # pub_prob = np.random.uniform(low=0, high=1)
             # if pub_prob <= self.primal_pub_probability:
             if rospy.get_time() - self.last_primal_comm > self.primal_comm_delay:
@@ -185,22 +195,25 @@ class WTAOptimization():
             assignment = np.unravel_index(np.argmax(self.x[self.my_primal_variable_idx]), self.x.shape)  # get the index
             # print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
             # print "Robot " + str(self.my_number) + " primal " + str(self.x[self.my_primal_variable_idx] )
-            # print "Robot " + str(self.my_number) + " convergence " + str(convdiff) + " number of steps " + str(k)
+            # print "Robot " + str(self.my_number) + " convergence " + str(self.convdiff) + " number of steps " + str(k)
             setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0] - 1])
             self.goal_pose_pub.publish(setpoint_msg)
 
             if self.publishing_plotting:
                 self.primal_plotting.publish(primal_msg)
                 convdiff_msg = Float64()
-                convdiff_msg.data = convdiff
+                convdiff_msg.data = self.convdiff
                 self.convdiff_pub.publish(convdiff_msg)
                 assignment_msg = Int64()
                 assignment_msg.data = assignment[0]
                 self.assignment_pub.publish(assignment_msg)
+                self.self_convdiff_pub.publish(self_convdiff_msg)
 
             # if rospy.get_time() - self.last_checked > self.attrition_check_threshold:
             #     self.check_attrition()
             #     self.last_checked = rospy.get_time()
+
+            self.running_while_loop = False
 
     def update_duals(self):
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
@@ -269,5 +282,9 @@ class WTAOptimization():
 
 if __name__ == '__main__':
     rospy.init_node('Distributed_WTA', anonymous=False)
-    obj = WTAOptimization()
-    rospy.spin()
+    wtaDemo = WTAOptimization()
+    loop_rate = rospy.Rate(100)
+
+    while not rospy.is_shutdown():
+        wtaDemo.optimization()
+        loop_rate.sleep()
