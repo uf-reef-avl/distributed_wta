@@ -86,9 +86,9 @@ class WTAOptimization():
 
         for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
             primal_topic = "/primal_" + str(i)
-            rospy.Subscriber(primal_topic, Float32MultiArray, self.primal_callback, i, queue_size=1)
+            rospy.Subscriber(primal_topic, Float32MultiArray, self.primal_callback, i, queue_size=100)
             dual_topic = "/dual_" + str(i)
-            rospy.Subscriber(dual_topic, Float64, self.dual_callback, i, queue_size=1)
+            rospy.Subscriber(dual_topic, Float64, self.dual_callback, i, queue_size=100)
             # Kat - agents only need to share their primal block values and dual scalar value. 
         pub_topic = "/primal_" + str(self.my_number)
         self.primal_pub = rospy.Publisher(pub_topic, Float32MultiArray, queue_size=10)
@@ -128,6 +128,12 @@ class WTAOptimization():
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
 
     def primal_callback(self, msg, vehicle_num):
+
+	if self.attrition_list:
+		if vehicle_num in self.attrition_list:
+			self.attrition_list.pop(self.attrition_list.index(vehicle_num))
+			self.weapon_list.append(vehicle_num)
+
         if vehicle_num in self.weapon_list:
             self.weapon_list.pop(self.weapon_list.index(vehicle_num))
 
