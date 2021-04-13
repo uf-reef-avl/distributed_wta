@@ -11,7 +11,7 @@
     <arg name="node_start_delay" default="0.0" />
 
     <arg name="run_rviz" default="true"/>
-    <arg name="record_bag" default="true"/>
+    <arg name="record_bag" default="false"/>
     <arg name="bag_name" default="test"/>
 
     <arg name="num_weapons" default="5"/>

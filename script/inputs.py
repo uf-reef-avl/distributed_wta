@@ -26,7 +26,6 @@ class WTAInputs():
 
         self.Q = 1. - self.Pk
         self.L = np.log(self.Q)
-        # self.V = np.array([1., 1.])  # signifies the importance of the targets
 
     def gradPrimal(self, optInputs,x, mu, agent):
         Nd = optInputs.m

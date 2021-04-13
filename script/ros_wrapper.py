@@ -23,17 +23,13 @@ class WTAOptimization():
         self.num_weapons = rospy.get_param("~num_weapons", 5)  # number of weapons/agent. Obtained from ROS Param
         self.num_targets = rospy.get_param("~num_targets", 4)  # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("~max_iter", 100)  # number of weapons/agent. Obtained from ROS Param
-        self.primal_pub_probability = rospy.get_param("~primal_pub_prob",
-                                                      0.2)  # number of weapons/agent. Obtained from ROS Param
-        self.dual_pub_probability = rospy.get_param("~dual_pub_prob",
-                                                    0.2)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
-        self.attrition_threshold = rospy.get_param("~attrition_threshold", 7)
-        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2)
+        self.attrition_threshold = rospy.get_param("~attrition_threshold", 1.5)
+        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 1.0)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
-        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 2)  # Publishes primal and dual agents for plotting
-        self.delay_lower_bound = rospy.get_param("~delay_lower_bound", 0.5)  # Publishes primal and dual agents for plotting
+        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 1.0)  # Publishes primal and dual agents for plotting
+        self.delay_lower_bound = rospy.get_param("~delay_lower_bound", 0.1)  # Publishes primal and dual agents for plotting
 
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
@@ -114,10 +110,11 @@ class WTAOptimization():
 
         # initialize variables
         self.mu = np.zeros(self.m)  # shared in primal and dual updates
-        self.x = .5 * np.ones(self.n)  # shared in primal and dual updates
+        self.x = (1/self.num_targets) * np.ones(self.n)  # shared in primal and dual updates
         self.stop_optimization = False
         self.update_dual_flag = False
         self.delay = 1
+        self.apply_delay = True
 
         # initialize algorithm
         from DACOA.algorithm import DACOA
@@ -129,18 +126,19 @@ class WTAOptimization():
 
     def primal_callback(self, msg, vehicle_num):
 
-	if self.attrition_list:
-		if vehicle_num in self.attrition_list:
-			self.attrition_list.pop(self.attrition_list.index(vehicle_num))
-			self.weapon_list.append(vehicle_num)
+        if self.attrition_list:
+            if vehicle_num in self.attrition_list:
+                self.attrition_list.pop(self.attrition_list.index(vehicle_num))
+                self.weapon_list.append(vehicle_num)
 
-        if vehicle_num in self.weapon_list:
-            self.weapon_list.pop(self.weapon_list.index(vehicle_num))
+            if vehicle_num in self.weapon_list:
+                self.weapon_list.pop(self.weapon_list.index(vehicle_num))
 
         self.attrition_dict[vehicle_num] = rospy.get_time()
         # print str(vehicle_num) + "      " +str(self.attrition_dict[vehicle_num])
         if not self.weapon_list:
-            self.delay = 0.05
+            self.delay = 0.001
+            self.apply_delay = False
             self.update_dual_flag = True
             self.weapon_list = range(0, self.num_weapons)
             self.weapon_list.pop(self.my_number)
@@ -154,7 +152,9 @@ class WTAOptimization():
             # print "Robot " + str(self.my_number) + " waiting for the while loop"
 
         idx = range(vehicle_num * self.num_targets, (vehicle_num + 1) * self.num_targets)
+        x_old = np.copy(self.x)
         self.x[idx] = msg.data
+        self.convdiff = la.norm(self.x - x_old)
         self.stop_optimization = False
 
     def dual_callback(self, msg, vehicle_num):
@@ -182,12 +182,11 @@ class WTAOptimization():
 
             self.x = np.copy(xUpdated)
             k += 1
-            time.sleep(self.delay)
+            if self.apply_delay:
+                time.sleep(self.delay)
 
             primal_msg = Float32MultiArray()
             primal_msg.data = self.x[self.my_primal_variable_idx]
-            # pub_prob = np.random.uniform(low=0, high=1)
-            # if pub_prob <= self.primal_pub_probability:
             if rospy.get_time() - self.last_primal_comm > self.primal_comm_delay:
                 # print( "Robot " + str(self.my_number) + " primal prob " + str(self.primal_comm_delay))
                 # print( "Robot " + str(self.my_number) + " prob " + str(pub_prob))
@@ -203,7 +202,8 @@ class WTAOptimization():
             # print "Robot " + str(self.my_number) + " primal " + str(self.x[self.my_primal_variable_idx] )
             # print "Robot " + str(self.my_number) + " convergence " + str(self.convdiff) + " number of steps " + str(k)
             setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0] - 1])
-            self.goal_pose_pub.publish(setpoint_msg)
+            if self.convdiff < 1e-6:
+                self.goal_pose_pub.publish(setpoint_msg)
 
             if self.publishing_plotting:
                 self.primal_plotting.publish(primal_msg)
@@ -230,8 +230,6 @@ class WTAOptimization():
         if self.publishing_plotting:
             self.dual_plotting.publish(pub_msg)
 
-        # pub_prob = np.random.uniform(low=0, high=1)
-        # if pub_prob <= self.dual_pub_probability:
         if rospy.get_time() - self.last_dual_comm > self.dual_comm_delay:
             self.dual_pub.publish(pub_msg)
             for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
