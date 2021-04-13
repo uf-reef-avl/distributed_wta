@@ -277,12 +277,12 @@ class WTAOptimization():
                 print "Robot " + str(self.my_number) + ": Oh no! They got to Agent " + str(agent) + " I havent heard in " + str(round(rospy.get_time() - agent_time, 2)) + " seconds"
                 idx = range(agent * self.num_targets, (agent + 1) * self.num_targets)
                 self.x[idx] = np.zeros(self.num_targets)
-		self.x[agent * self.num_targets] = 1
+                self.x[agent * self.num_targets] = 1
                 self.mu[agent] = 0
                 if agent not in self.attrition_list:
                     self.attrition_list.append(agent)
-                    self.weapon_list.pop(self.weapon_list.index(agent))
-
+                    if agent in self.weapon_list:
+                        self.weapon_list.pop(self.weapon_list.index(agent))
 
 if __name__ == '__main__':
     rospy.init_node('Distributed_WTA', anonymous=False)
