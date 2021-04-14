@@ -28,7 +28,7 @@ class WTAOptimization():
         self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 1.0)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
-        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 1.0)  # Publishes primal and dual agents for plotting
+        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 0.5)  # Publishes primal and dual agents for plotting
         self.delay_lower_bound = rospy.get_param("~delay_lower_bound", 0.1)  # Publishes primal and dual agents for plotting
 
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
@@ -131,13 +131,14 @@ class WTAOptimization():
                 self.attrition_list.pop(self.attrition_list.index(vehicle_num))
                 self.weapon_list.append(vehicle_num)
 
-            if vehicle_num in self.weapon_list:
-                self.weapon_list.pop(self.weapon_list.index(vehicle_num))
+        if vehicle_num in self.weapon_list:
+            self.weapon_list.pop(self.weapon_list.index(vehicle_num))
 
         self.attrition_dict[vehicle_num] = rospy.get_time()
         # print str(vehicle_num) + "      " +str(self.attrition_dict[vehicle_num])
+        # print "CALLBACK:: Robot " + str(self.my_number) + " weapons list " + str(self.weapon_list)
         if not self.weapon_list:
-            self.delay = 0.001
+            self.delay = 0.05
             self.apply_delay = False
             self.update_dual_flag = True
             self.weapon_list = range(0, self.num_weapons)
@@ -184,7 +185,7 @@ class WTAOptimization():
             k += 1
             if self.apply_delay:
                 time.sleep(self.delay)
-
+            # print "Robot " + str(self.my_number) + " weapons list " + str(self.weapon_list)
             primal_msg = Float32MultiArray()
             primal_msg.data = self.x[self.my_primal_variable_idx]
             if rospy.get_time() - self.last_primal_comm > self.primal_comm_delay:
