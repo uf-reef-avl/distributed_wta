@@ -127,7 +127,7 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
 
         <group if="$(arg run_gazebo)">
             <arg name="x_pos" default="""+"\""+str(random.uniform(-4,4))+"\""+r"""/>
-            <arg name="y_pos" default="""+"\""+str(random.uniform(-4,4))+"\""+r"""/>
+            <arg name="y_pos" default="""+"\""+str(-4)+"\""+r"""/>
             <arg name="z_pos" default="0.0"/>
             <arg name="yaw"   default="0.0"/>
             <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
