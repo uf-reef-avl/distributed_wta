@@ -8,10 +8,10 @@
 
 target_position:
   [
-    {position: [1.2, 4., 0.0]},
-    {position: [0.6, 4., 0.0]},
-    {position: [-0.6, 4., 0.0]},
-    {position: [-1.2, 4., 0.0]}
+    {position: [2., 4., 0.0]},
+    {position: [1., 4., 0.0]},
+    {position: [-1., 4., 0.0]},
+    {position: [-2, 4., 0.0]}
     #{position: [5., 4., 0.0]},
     #{position: [2., 4., 0.0]},
     #{position: [0, 4., 0.0]},
