@@ -157,6 +157,8 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     <param name="number_of_weapon" value="""+"\""+str(weapon_number)+"\""+r""" type="int"/>
 	<remap from="assignment_" to="assignment_"/>
 </node>
+
+    <node name="attrition" pkg="wta_distributed_optimization" type="attrition.py" output="screen"/>
 </launch>"""
     f.write(file_str)
     f.close()
