@@ -87,7 +87,7 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     <arg name="bag_name" default="test"/>
     <arg name="num_weapons" default="""+"\""+str(weapon_number)+"\""+r"""/>
     <arg name="num_targets" default="""+"\""+str(target_number)+"\""+r"""/>
-    <rosparam file="$(find wta_distributed_optimization)/params/target_position.yaml"/>
+    <rosparam file="$(find wta_distributed_optimization)/params/target_position_attrition.yaml"/>
     """
 
 
@@ -101,7 +101,7 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     file_str += str(initialisation_param_list)
     file_str += r"""
         global_launch_param_name: "/global_initialisation_finished"
-        user_initialisation_enable: false
+        user_initialisation_enable: true
         user_initialisation_name: "/user_launch"
     </rosparam>
 </node>"""

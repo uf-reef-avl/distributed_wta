@@ -7,7 +7,7 @@
     <arg name="fifth_agent"  default="agent_4"/>
     <arg name="model" default="burger"/>
 
-    <arg name="run_gazebo" default="false"/>
+    <arg name="run_gazebo" default="true"/>
     <arg name="node_start_delay" default="0.0" />
 
     <arg name="run_rviz" default="false"/>
@@ -18,6 +18,15 @@
     <arg name="num_targets" default="4"/>
 
     <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position_attrition.yaml"/>
+
+<node pkg="initialisation_synchronizer" type="initialisation_synchronizer_node.py" name="initialisation_synchronizer" >
+	<rosparam>
+        initialized_params_name_list: ['/agent_0/initialisation_finished', '/agent_1/initialisation_finished', '/agent_2/initialisation_finished', '/agent_3/initialisation_finished', '/agent_4/initialisation_finished']
+        global_launch_param_name: "/global_initialisation_finished"
+        user_initialisation_enable: true
+        user_initialisation_name: "/user_launch"
+    </rosparam>
+</node>
 
     <group ns="$(arg first_agent)">
         <arg name="agent_name" default="$(arg first_agent)"/>
@@ -38,8 +47,8 @@
         </node>
 
         <group if="$(arg run_gazebo)">
-            <arg name="x_pos" default="-10.0"/>
-            <arg name="y_pos" default="-10.0"/>
+            <arg name="x_pos" default="5.0"/>
+            <arg name="y_pos" default="-4.0"/>
             <arg name="z_pos" default="0.0"/>
             <arg name="yaw"   default="0.0"/>
             <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
@@ -77,8 +86,8 @@
             <remap from="goal_pose" to="setpoint"/>
         </node>
         <group if="$(arg run_gazebo)">
-            <arg name="x_pos" default="-5.0"/>
-            <arg name="y_pos" default="-10.0"/>
+            <arg name="x_pos" default="3.0"/>
+            <arg name="y_pos" default="-4.0"/>
             <arg name="z_pos" default="0.0"/>
             <arg name="yaw"   default="0.0"/>
             <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
@@ -118,7 +127,7 @@
         </node>
         <group if="$(arg run_gazebo)">
             <arg name="x_pos" default="0.0"/>
-            <arg name="y_pos" default="-10.0"/>
+            <arg name="y_pos" default="-4.0"/>
             <arg name="z_pos" default="0.0"/>
             <arg name="yaw"   default="0.0"/>
             <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
@@ -158,8 +167,8 @@
         </node>
 
         <group if="$(arg run_gazebo)">
-            <arg name="x_pos" default="5.0"/>
-            <arg name="y_pos" default="-10.0"/>
+            <arg name="x_pos" default="-3.0"/>
+            <arg name="y_pos" default="-4.0"/>
             <arg name="z_pos" default="0.0"/>
             <arg name="yaw"   default="0.0"/>
             <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
@@ -198,8 +207,8 @@
         </node>
 
         <group if="$(arg run_gazebo)">
-            <arg name="x_pos" default="10.0"/>
-            <arg name="y_pos" default="-10.0"/>
+            <arg name="x_pos" default="-5.0"/>
+            <arg name="y_pos" default="-4.0"/>
             <arg name="z_pos" default="0.0"/>
             <arg name="yaw"   default="0.0"/>
             <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
