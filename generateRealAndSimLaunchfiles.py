@@ -151,6 +151,12 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     file_str+=r"""    
     <node if="$(arg run_rviz)" name="rviz_node" pkg="rviz" type="rviz" output="log" args="-d $(find wta_distributed_optimization)/rviz/wta_demo.rviz"/>
     <node if="$(arg record_bag)" name="record" pkg="rosbag" type="record" args="-O $(arg bag_name) dual_0 dual_1 dual_2 primal_0 primal_1 primal_2 agent_00/setpoint agent_01/setpoint agent_02/setpoint" output="screen"/>
+
+<node pkg="wta_visualization" type="wta_visualization_node.py" name="wta_visualization" output="screen">
+    <param name="number_of_target" value="""+"\""+str(target_number)+"\""+r""" type="int"/>
+    <param name="number_of_weapon" value="""+"\""+str(weapon_number)+"\""+r""" type="int"/>
+	<remap from="assignment_" to="assignment_"/>
+</node>
 </launch>"""
     f.write(file_str)
     f.close()
