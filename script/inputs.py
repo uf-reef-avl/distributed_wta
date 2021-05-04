@@ -39,8 +39,7 @@ class WTAInputs():
 
         alpha = 0.0001
         # gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + np.inner(mu, self.A[:, agent])
-        gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + mu @ self.A[:, agent] + alpha * x[
-            weapon * N_targets + target]
+        gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + np.inner(mu, self.A[:, agent]) + alpha * x[weapon * N_targets + target]
         return gradient
 
     def gradDual(self, optInputs, x, mu, agent):
