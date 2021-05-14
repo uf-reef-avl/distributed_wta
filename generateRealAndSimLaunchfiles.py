@@ -79,6 +79,18 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     f = open("launch/sim_agents.launch", "w")
 
     file_str = r"""<launch>
+
+	 <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="false"/>
+    <arg name="gui" value="false"/>
+    <arg name="recording" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+	<node name="rviz_node" pkg="rviz" type="rviz" args="-d $(find wta_distributed_optimization)/rviz/wta_demo.rviz"/>
+ 
+<node name="listener" pkg="roscpp_tutorials" type="listener" launch-prefix="bash -c 'sleep 5.0; $0 $@' " />
+
     <arg name="model" default="burger"/>
     <arg name="run_gazebo" default="true"/>
     <arg name="node_start_delay" default="0.0" />
@@ -101,7 +113,7 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     file_str += str(initialisation_param_list)
     file_str += r"""
         global_launch_param_name: "/global_initialisation_finished"
-        user_initialisation_enable: true
+        user_initialisation_enable: false
         user_initialisation_name: "/user_launch"
     </rosparam>
 </node>"""
@@ -126,7 +138,7 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
         </node>
 
         <group if="$(arg run_gazebo)">
-            <arg name="x_pos" default="""+"\""+str(random.uniform(-4,4))+"\""+r"""/>
+            <arg name="x_pos" default="""+"\""+str(-id)+"\""+r"""/>
             <arg name="y_pos" default="""+"\""+str(-4)+"\""+r"""/>
             <arg name="z_pos" default="0.0"/>
             <arg name="yaw"   default="0.0"/>
@@ -152,11 +164,6 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
     <node if="$(arg run_rviz)" name="rviz_node" pkg="rviz" type="rviz" output="log" args="-d $(find wta_distributed_optimization)/rviz/wta_demo.rviz"/>
     <node if="$(arg record_bag)" name="record" pkg="rosbag" type="record" args="-O $(arg bag_name) dual_0 dual_1 dual_2 primal_0 primal_1 primal_2 agent_00/setpoint agent_01/setpoint agent_02/setpoint" output="screen"/>
 
-<node pkg="wta_visualization" type="wta_visualization_node.py" name="wta_visualization" output="screen">
-    <param name="number_of_target" value="""+"\""+str(target_number)+"\""+r""" type="int"/>
-    <param name="number_of_weapon" value="""+"\""+str(weapon_number)+"\""+r""" type="int"/>
-	<remap from="assignment_" to="assignment_"/>
-</node>
 
     <node name="attrition" pkg="wta_distributed_optimization" type="attrition.py" output="screen"/>
 </launch>"""
