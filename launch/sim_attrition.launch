@@ -17,16 +17,8 @@
     <arg name="num_weapons" default="5"/>
     <arg name="num_targets" default="4"/>
 
-    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position_attrition.yaml"/>
+    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position_sim_attrition.yaml"/>
 
-<node pkg="initialisation_synchronizer" type="initialisation_synchronizer_node.py" name="initialisation_synchronizer" >
-	<rosparam>
-        initialized_params_name_list: ['/agent_0/initialisation_finished', '/agent_1/initialisation_finished', '/agent_2/initialisation_finished', '/agent_3/initialisation_finished', '/agent_4/initialisation_finished']
-        global_launch_param_name: "/global_initialisation_finished"
-        user_initialisation_enable: true
-        user_initialisation_name: "/user_launch"
-    </rosparam>
-</node>
 
     <group ns="$(arg first_agent)">
         <arg name="agent_name" default="$(arg first_agent)"/>
@@ -38,9 +30,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.01
+                delta: 0.001
                 #rho:
-                gamma: 0.1
+                gamma: 0.01
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -78,9 +70,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.01
+                delta: 0.001
                 #rho:
-                gamma: 0.1
+                gamma: 0.01
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -118,9 +110,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.01
+                delta: 0.001
                 #rho:
-                gamma: 0.1
+                gamma: 0.01
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -158,9 +150,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.01
+                delta: 0.001
                 #rho:
-                gamma: 0.1
+                gamma: 0.01
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -198,9 +190,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.01
+                delta: 0.001
                 #rho:
-                gamma: 0.1
+                gamma: 0.01
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>

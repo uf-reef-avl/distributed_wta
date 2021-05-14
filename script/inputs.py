@@ -26,6 +26,7 @@ class WTAInputs():
 
         self.Q = 1. - self.Pk
         self.L = np.log(self.Q)
+        self.scaled_L = self.L / np.linalg.norm(self.L, ord=0, axis=1)
 
     def gradPrimal(self, optInputs,x, mu, agent):
         Nd = optInputs.m
