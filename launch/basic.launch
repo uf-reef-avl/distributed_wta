@@ -31,7 +31,7 @@
                 dual_pub_prob: 0.05
                 delta: 0.01
                 #rho:
-                gamma: 1
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -71,7 +71,7 @@
                 dual_pub_prob: 0.05
                 delta: 0.01
                 #rho:
-                gamma: 1
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -111,7 +111,7 @@
                 dual_pub_prob: 0.05
                 delta: 0.01
                 #rho:
-                gamma: 1
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -151,7 +151,7 @@
                 dual_pub_prob: 0.05
                 delta: 0.01
                 #rho:
-                gamma: 1
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -191,7 +191,7 @@
                 dual_pub_prob: 0.05
                 delta: 0.01
                 #rho:
-                gamma: 1
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>

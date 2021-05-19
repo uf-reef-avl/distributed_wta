@@ -26,9 +26,9 @@ class WTAInputs():
 
         self.Q = 1. - self.Pk
         self.L = np.log(self.Q)
-        self.scaled_L = self.L / np.linalg.norm(self.L, ord=0, axis=1)
+        #self.scaled_L = self.L / np.linalg.norm(self.L, ord=0, axis=1)
 
-    def gradPrimal(self, optInputs,x, mu, agent):
+    def gradPrimal(self, optInputs, x, mu, agent):
         Nd = optInputs.m
         N_targets = int(optInputs.n / optInputs.m)
 
@@ -38,7 +38,7 @@ class WTAInputs():
         for k in range(Nd):
             sumterm += self.L[k, target] * x[k * N_targets + target]
 
-        alpha = 0.0001
+        alpha = 0.01
         # gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + np.inner(mu, self.A[:, agent])
         gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + np.inner(mu, self.A[:, agent]) + alpha * x[weapon * N_targets + target]
         return gradient

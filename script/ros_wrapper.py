@@ -24,12 +24,12 @@ class WTAOptimization():
         self.num_targets = rospy.get_param("~num_targets", 4)  # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("~max_iter", 100)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
-        self.attrition_threshold = rospy.get_param("~attrition_threshold", 1.5)
-        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 1.0)
+        self.attrition_threshold = rospy.get_param("~attrition_threshold", 5.0)
+        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2.0)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
-        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 0.5)  # Publishes primal and dual agents for plotting
-        self.delay_lower_bound = rospy.get_param("~delay_lower_bound", 0.1)  # Publishes primal and dual agents for plotting
+        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 0.05)  # Publishes primal and dual agents for plotting
+        self.delay_lower_bound = rospy.get_param("~delay_lower_bound", 0.01)  # Publishes primal and dual agents for plotting
 
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
@@ -167,9 +167,11 @@ class WTAOptimization():
             self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
 
     def optimization(self):
+        sum = 0
         self.convdiff = 1
         k = 0
         while self.convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
+            t0 = time.time()
             self.running_while_loop = True
             if self.update_dual_flag:
                 self.update_duals()
@@ -185,6 +187,7 @@ class WTAOptimization():
             k += 1
             if self.apply_delay:
                 time.sleep(self.delay)
+            # time.sleep(0.01)
             # print "Robot " + str(self.my_number) + " weapons list " + str(self.weapon_list)
             primal_msg = Float32MultiArray()
             primal_msg.data = self.x[self.my_primal_variable_idx]
@@ -220,7 +223,15 @@ class WTAOptimization():
                 self.check_attrition()
                 self.last_checked = rospy.get_time()
 
+            t1 = time.time()
+            total = t1-t0
+            sum += total
             self.running_while_loop = False
+        # if k >2:
+        #     print "CALLBACK:: Robot " + str(self.my_number) + ": Average time: " + str(sum/k) + " For " + str(k) + " Iterations "
+        #     print "CALLBACK:: Robot " + str(self.my_number) + ": convdiff: " + str(self.convdiff) + " For " + str(k) + " Iterations "
+        #     print "CALLBACK:: Robot " + str(self.my_number) + ": Stop Optimization: " + str(self.stop_optimization) + " For " + str(k) + " Iterations "
+        #     print "CALLBACK:: Robot " + str(self.my_number) + ": K: " + str(self.k_max) + " For " + str(k) + " Iterations "
 
     def update_duals(self):
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)

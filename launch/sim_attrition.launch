@@ -30,9 +30,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.001
+                delta: 0.1
                 #rho:
-                gamma: 0.01
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -70,9 +70,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.001
+                delta: 0.1
                 #rho:
-                gamma: 0.01
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -110,9 +110,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.001
+                delta: 0.1
                 #rho:
-                gamma: 0.01
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -150,9 +150,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.001
+                delta: 0.1
                 #rho:
-                gamma: 0.01
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -190,9 +190,9 @@
                 max_iter: 1000
                 primal_pub_prob: 0.05
                 dual_pub_prob: 0.05
-                delta: 0.001
+                delta: 0.1
                 #rho:
-                gamma: 0.01
+                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
