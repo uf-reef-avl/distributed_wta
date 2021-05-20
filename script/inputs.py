@@ -9,7 +9,7 @@ Created on Tue Oct 13 14:40:26 2020
 import numpy as np
 
 class WTAInputs():
-    def __init__(self, num_weapons, num_targets, Pk, V):
+    def __init__(self, num_weapons, num_targets, Pk, V, alpha=0.01):
 
         A = np.empty([num_weapons, num_targets * num_weapons], dtype=float)
 
@@ -26,6 +26,7 @@ class WTAInputs():
 
         self.Q = 1. - self.Pk
         self.L = np.log(self.Q)
+        self.alpha = alpha
         #self.scaled_L = self.L / np.linalg.norm(self.L, ord=0, axis=1)
 
     def gradPrimal(self, optInputs, x, mu, agent):
@@ -38,9 +39,8 @@ class WTAInputs():
         for k in range(Nd):
             sumterm += self.L[k, target] * x[k * N_targets + target]
 
-        alpha = 0.01
         # gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + np.inner(mu, self.A[:, agent])
-        gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + np.inner(mu, self.A[:, agent]) + alpha * x[weapon * N_targets + target]
+        gradient = self.V[target] * self.L[weapon, target] * np.exp(sumterm) + np.inner(mu, self.A[:, agent]) + self.alpha * x[weapon * N_targets + target]
         return gradient
 
     def gradDual(self, optInputs, x, mu, agent):

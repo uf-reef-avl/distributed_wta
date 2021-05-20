@@ -27,12 +27,6 @@ def generate_real_turtlebot_launch_file(id,target_number, weapon_number):
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
-                max_iter: 1000
-                primal_pub_prob: 0.5
-                dual_pub_prob: 0.5
-                delta: 0.1
-                #rho:
-                gamma: 0.1
                 is_simulated: False
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -126,12 +120,6 @@ def generate_sim_turtlebot_launch_file(real_robots_number,target_number, weapon_
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
-                max_iter: 1000
-                primal_pub_prob: 0.5
-                dual_pub_prob: 0.5
-                delta: 0.1
-                #rho:
-                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>

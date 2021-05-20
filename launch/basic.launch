@@ -26,12 +26,6 @@
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
-                max_iter: 1000
-                primal_pub_prob: 0.05
-                dual_pub_prob: 0.05
-                delta: 0.01
-                #rho:
-                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -66,12 +60,6 @@
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
-                max_iter: 1000
-                primal_pub_prob: 0.05
-                dual_pub_prob: 0.05
-                delta: 0.01
-                #rho:
-                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -106,12 +94,6 @@
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
-                max_iter: 1000
-                primal_pub_prob: 0.05
-                dual_pub_prob: 0.05
-                delta: 0.01
-                #rho:
-                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -146,12 +128,6 @@
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
-                max_iter: 1000
-                primal_pub_prob: 0.05
-                dual_pub_prob: 0.05
-                delta: 0.01
-                #rho:
-                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>
@@ -186,12 +162,6 @@
             <param name="num_weapons"     value="$(arg num_weapons)"/>
             <param name="num_targets"     value="$(arg num_targets)"/>
             <rosparam>
-                max_iter: 1000
-                primal_pub_prob: 0.05
-                dual_pub_prob: 0.05
-                delta: 0.01
-                #rho:
-                gamma: 0.1
                 is_simulated: True
             </rosparam>
             <remap from="goal_pose" to="setpoint"/>

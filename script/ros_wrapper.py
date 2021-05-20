@@ -22,20 +22,19 @@ class WTAOptimization():
 
         self.num_weapons = rospy.get_param("~num_weapons", 5)  # number of weapons/agent. Obtained from ROS Param
         self.num_targets = rospy.get_param("~num_targets", 4)  # number of weapons/agent. Obtained from ROS Param
-        self.k_max = rospy.get_param("~max_iter", 100)  # number of weapons/agent. Obtained from ROS Param
+        self.k_max = rospy.get_param("/max_iter", 1000)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
         self.attrition_threshold = rospy.get_param("~attrition_threshold", 5.0)
         self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2.0)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
-        self.delay_upper_bound = rospy.get_param("~delay_upper_bound", 0.05)  # Publishes primal and dual agents for plotting
-        self.delay_lower_bound = rospy.get_param("~delay_lower_bound", 0.01)  # Publishes primal and dual agents for plotting
+        self.delay_upper_bound = rospy.get_param("/delay_upper_bound", 0.5)  # Publishes primal and dual agents for plotting
+        self.delay_lower_bound = rospy.get_param("/delay_lower_bound", 0.1)  # Publishes primal and dual agents for plotting
 
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
         assert Pk.shape[1] == self.num_targets
-
-        # V = np.random.uniform(low=5, high=10, size=(1, self.num_targets))
+        alpha = rospy.get_param("/alpha", 0.01)  # dual regularization parameter
         V = np.array(rospy.get_param("/V"))
         assert V.shape[0] == self.num_targets
         # For attritiion, I am going to increase the number targets.
@@ -43,7 +42,7 @@ class WTAOptimization():
         Pk_att_col = np.zeros((self.num_weapons, 1))
         Pk = np.append(Pk_att_col, Pk, 1)
         V = np.append(0, V)
-        self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V)
+        self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V, alpha)
 
         self.visualization = WTAVisualizer(self.target_positions)
 
@@ -100,9 +99,9 @@ class WTAOptimization():
 
         self.goal_pose_pub = rospy.Publisher("goal_pose", PoseStamped, queue_size=10)
 
-        self.delta = rospy.get_param("delta", 0.01)  # dual regularization parameter
-        self.rho = rospy.get_param("rho", self.delta / (self.delta ** 2 + 2))  # dual step-size
-        self.gamma = rospy.get_param("gamma", 1)  # primal step-size
+        self.delta = rospy.get_param("/delta", 0.01)  # dual regularization parameter
+        self.rho = rospy.get_param("/rho", self.delta / (self.delta ** 2 + 2))  # dual step-size
+        self.gamma = rospy.get_param("/gamma", 1)  # primal step-size
 
         self.n = self.num_weapons * self.num_targets  # size of primal variable
         self.m = self.num_weapons  # size of dual variable
