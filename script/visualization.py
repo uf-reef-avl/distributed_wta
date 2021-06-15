@@ -110,7 +110,7 @@ class WTAVisualizer():
         if (is_simulated):
             self.odom_marker.color = ColorRGBA(1, 0, 0, 1)
         else:
-            self.odom_marker.color = ColorRGBA(0, 0, 0, 1)
+            self.odom_marker.color = ColorRGBA(0, 1, 0, 1)
 
         self.marker_pub.publish(self.odom_marker)
 
