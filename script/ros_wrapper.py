@@ -15,7 +15,7 @@ import time
 from visualization import WTAVisualizer
 from inputs import WTAInputs
 from nav_msgs.msg import Odometry
-
+from math import fmod
 
 class WTAOptimization():
     def __init__(self):
@@ -30,6 +30,7 @@ class WTAOptimization():
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
         self.delay_upper_bound = rospy.get_param("/delay_upper_bound", 0.5)  # Publishes primal and dual agents for plotting
         self.delay_lower_bound = rospy.get_param("/delay_lower_bound", 0.1)  # Publishes primal and dual agents for plotting
+        self.synchronization_dual_delay = rospy.get_param("/synchronization_dual_delay",0.5)
 
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
@@ -124,7 +125,6 @@ class WTAOptimization():
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
 
     def primal_callback(self, msg, vehicle_num):
-
         if self.attrition_list:
             if vehicle_num in self.attrition_list:
                 self.attrition_list.pop(self.attrition_list.index(vehicle_num))
@@ -136,17 +136,9 @@ class WTAOptimization():
         self.attrition_dict[vehicle_num] = rospy.get_time()
         # print str(vehicle_num) + "      " +str(self.attrition_dict[vehicle_num])
         # print "CALLBACK:: Robot " + str(self.my_number) + " weapons list " + str(self.weapon_list)
-        if not self.weapon_list:
-            self.delay = 0.05
-            self.apply_delay = False
-            self.update_dual_flag = True
-            self.weapon_list = range(0, self.num_weapons)
-            self.weapon_list.pop(self.my_number)
-            if self.attrition_list:
-                self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
+
 
         self.stop_optimization = True
-
         # while self.running_while_loop:
         #     time.sleep(0.001)
             # print "Robot " + str(self.my_number) + " waiting for the while loop"
@@ -172,9 +164,9 @@ class WTAOptimization():
         while self.convdiff > 10 ** -8 and not self.stop_optimization and not rospy.is_shutdown() and k < self.k_max:
             t0 = time.time()
             self.running_while_loop = True
-            if self.update_dual_flag:
-                self.update_duals()
-                self.update_dual_flag = False
+            # if self.update_dual_flag:
+            #     self.update_duals()
+            #     self.update_dual_flag = False
 
             xUpdated = self.opt.singlePrimal(self.x, self.mu, self.my_number, self.inputs)
             self.convdiff = la.norm(self.x - xUpdated)
@@ -184,8 +176,8 @@ class WTAOptimization():
 
             self.x = np.copy(xUpdated)
             k += 1
-            if self.apply_delay:
-                time.sleep(self.delay)
+            # if self.apply_delay:
+            #     time.sleep(self.delay)
             # time.sleep(0.01)
             # print "Robot " + str(self.my_number) + " weapons list " + str(self.weapon_list)
             primal_msg = Float32MultiArray()
@@ -222,6 +214,20 @@ class WTAOptimization():
                 self.check_attrition()
                 self.last_checked = rospy.get_time()
 
+            if fmod(rospy.get_time(), self.synchronization_dual_delay) < 0.01:
+                self.weapon_list = range(0, self.num_weapons)
+                self.weapon_list.pop(self.my_number)
+                if self.attrition_list:
+                    self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
+                rospy.sleep(0.011)
+                self.primal_pub.publish(primal_msg)
+                stalling_loop_rate = rospy.Rate(100)
+                while not self.weapon_list:
+                    stalling_loop_rate.sleep()
+
+                self.update_duals()
+
+
             t1 = time.time()
             total = t1-t0
             sum += total
@@ -233,6 +239,7 @@ class WTAOptimization():
         #     print "CALLBACK:: Robot " + str(self.my_number) + ": K: " + str(self.k_max) + " For " + str(k) + " Iterations "
 
     def update_duals(self):
+        rospy.loginfo("Dual synchronization time" + str(rospy.get_time()) + " name" + str(self.my_number))
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
         self.mu[self.my_number] = np.copy(muUpdated)
         pub_msg = Float64()
