@@ -219,14 +219,14 @@ class WTAOptimization():
                 self.weapon_list.pop(self.my_number)
                 if self.attrition_list:
                     self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
-                time.sleep(0.02)
+                time.sleep(0.3)
                 self.primal_pub.publish(primal_msg)
                 while self.weapon_list and not rospy.is_shutdown():
                     self.check_attrition()
                     continue
 
-                # print "Optimization:: Robot " + str(self.my_number) + ' Weapons list ' + str(self.weapon_list)
-                # rospy.loginfo("Optimization:: Robot " + str(self.my_number) +" Done Waiting")
+                print "Optimization:: Robot " + str(self.my_number) + ' Weapons list ' + str(self.weapon_list)
+                rospy.loginfo("Optimization:: Robot " + str(self.my_number) +" Done Waiting")
                 self.update_duals()
                 self.weapon_list = range(0, self.num_weapons)
                 self.weapon_list.pop(self.my_number)
