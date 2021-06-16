@@ -269,7 +269,7 @@ class WTAOptimization():
 
         if self.publishing_plotting:
             self.dual_plotting.publish(pub_msg)
-4
+
         self.dual_pub.publish(pub_msg)
         for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
             self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
