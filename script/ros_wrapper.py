@@ -24,8 +24,8 @@ class WTAOptimization():
         self.num_targets = rospy.get_param("~num_targets", 4)  # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("/max_iter", 1000)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
-        self.attrition_threshold = rospy.get_param("~attrition_threshold", 0.55)
-        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 0.6)
+        self.attrition_threshold = rospy.get_param("~attrition_threshold", 0.8)
+        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 0.85)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
         self.delay_upper_bound = rospy.get_param("/delay_upper_bound", .5)  # Publishes primal and dual agents for plotting
