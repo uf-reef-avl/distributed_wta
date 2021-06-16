@@ -24,13 +24,13 @@ class WTAOptimization():
         self.num_targets = rospy.get_param("~num_targets", 4)  # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("/max_iter", 1000)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
-        self.attrition_threshold = rospy.get_param("~attrition_threshold", 5.0)
-        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2.0)
+        self.attrition_threshold = rospy.get_param("~attrition_threshold", 0.55)
+        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 0.6)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
-        self.delay_upper_bound = rospy.get_param("/delay_upper_bound", 0.5)  # Publishes primal and dual agents for plotting
-        self.delay_lower_bound = rospy.get_param("/delay_lower_bound", 0.1)  # Publishes primal and dual agents for plotting
-        self.synchronization_dual_delay = rospy.get_param("/synchronization_dual_delay",0.5)
+        self.delay_upper_bound = rospy.get_param("/delay_upper_bound", .5)  # Publishes primal and dual agents for plotting
+        self.delay_lower_bound = rospy.get_param("/delay_lower_bound", .1)  # Publishes primal and dual agents for plotting
+        self.synchronization_dual_delay = rospy.get_param("/synchronization_dual_delay", 1.)
 
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
@@ -136,6 +136,7 @@ class WTAOptimization():
         self.attrition_dict[vehicle_num] = rospy.get_time()
         # print str(vehicle_num) + "      " +str(self.attrition_dict[vehicle_num])
         # print "CALLBACK:: Robot " + str(self.my_number) + " weapons list " + str(self.weapon_list)
+        # print "PRIMAL CALLBACK:: Robot " + str(self.my_number) + " got message from " + str(vehicle_num)
 
 
         self.stop_optimization = True
@@ -150,10 +151,9 @@ class WTAOptimization():
         self.stop_optimization = False
 
     def dual_callback(self, msg, vehicle_num):
+        # print "DUAL CALLBACK:: Robot " + str(self.my_number) + " got message from " + str(vehicle_num)
         self.attrition_dict[vehicle_num] = rospy.get_time() #last heard from vehicle
         self.mu[vehicle_num] = msg.data
-        self.weapon_list = range(0, self.num_weapons)
-        self.weapon_list.pop(self.my_number)
         if self.attrition_list:
             self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
 
@@ -219,27 +219,49 @@ class WTAOptimization():
                 self.weapon_list.pop(self.my_number)
                 if self.attrition_list:
                     self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
-                rospy.sleep(0.011)
+                time.sleep(0.02)
                 self.primal_pub.publish(primal_msg)
-                stalling_loop_rate = rospy.Rate(100)
-                while not self.weapon_list:
-                    stalling_loop_rate.sleep()
+                while self.weapon_list and not rospy.is_shutdown():
+                    self.check_attrition()
+                    continue
 
+                # print "Optimization:: Robot " + str(self.my_number) + ' Weapons list ' + str(self.weapon_list)
+                # rospy.loginfo("Optimization:: Robot " + str(self.my_number) +" Done Waiting")
                 self.update_duals()
+                self.weapon_list = range(0, self.num_weapons)
+                self.weapon_list.pop(self.my_number)
+                if self.attrition_list:
+                    self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
+
+
+            #     self.weapon_list = range(0, self.num_weapons)
+            #     self.weapon_list.pop(self.my_number)
+            #     if self.attrition_list:
+            #         self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
+            #     rospy.sleep(0.011)
+            #     self.primal_pub.publish(primal_msg)
+            #     stalling_loop_rate = rospy.Rate(100)
+            #     # while self.weapon_list:
+            #     #     rospy.logerr(str(self.weapon_list)+ " my number"+str(self.my_number))
+            #     #     stalling_loop_rate.sleep()
+            #     # rospy.logwarn("//////////////////////////////////////////////////////////////////////////////////////////////////////////////")
+            #     self.update_duals()
 
 
             t1 = time.time()
             total = t1-t0
             sum += total
             self.running_while_loop = False
-        # if k >2:
+        # if k >15:
         #     print "CALLBACK:: Robot " + str(self.my_number) + ": Average time: " + str(sum/k) + " For " + str(k) + " Iterations "
+        #     print "CALLBACK:: Robot " + str(self.my_number) + ": Average Frequency: " + str(1/(sum/k)) + " For " + str(k) + " Iterations "
         #     print "CALLBACK:: Robot " + str(self.my_number) + ": convdiff: " + str(self.convdiff) + " For " + str(k) + " Iterations "
         #     print "CALLBACK:: Robot " + str(self.my_number) + ": Stop Optimization: " + str(self.stop_optimization) + " For " + str(k) + " Iterations "
         #     print "CALLBACK:: Robot " + str(self.my_number) + ": K: " + str(self.k_max) + " For " + str(k) + " Iterations "
 
     def update_duals(self):
-        rospy.loginfo("Dual synchronization time" + str(rospy.get_time()) + " name" + str(self.my_number))
+        # print("Dual synchronization time" + str(rospy.get_time()) + " name" + str(self.my_number))
+        # rospy.loginfo("Update Duals:: Robot " + str(self.my_number) + ": " + str(self.x))
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
         self.mu[self.my_number] = np.copy(muUpdated)
         pub_msg = Float64()
@@ -248,13 +270,9 @@ class WTAOptimization():
         if self.publishing_plotting:
             self.dual_plotting.publish(pub_msg)
 
-        if rospy.get_time() - self.last_dual_comm > self.dual_comm_delay:
-            self.dual_pub.publish(pub_msg)
-            for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
-                self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
-
-            self.last_dual_comm = rospy.get_time()
-            self.dual_comm_delay = np.random.uniform(low=self.delay_lower_bound, high=self.delay_upper_bound)
+        self.dual_pub.publish(pub_msg)
+        for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
+            self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
 
 
     def pose_msg_from_dict(self, target_dictionary):

@@ -5,3 +5,4 @@ pub_prob: 0.2
 delta: 0.01
 #rho:
 gamma: 1
+synchronization_dual_delay: 0.5
