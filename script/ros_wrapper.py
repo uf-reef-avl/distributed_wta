@@ -219,7 +219,7 @@ class WTAOptimization():
                 self.weapon_list.pop(self.my_number)
                 if self.attrition_list:
                     self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
-                time.sleep(0.3)
+                time.sleep(0.02)
                 self.primal_pub.publish(primal_msg)
                 while self.weapon_list and not rospy.is_shutdown():
                     self.check_attrition()
@@ -269,7 +269,7 @@ class WTAOptimization():
 
         if self.publishing_plotting:
             self.dual_plotting.publish(pub_msg)
-
+4
         self.dual_pub.publish(pub_msg)
         for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
             self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
