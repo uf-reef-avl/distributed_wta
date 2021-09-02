@@ -152,7 +152,7 @@ class WTAOptimization():
 
     def dual_callback(self, msg, vehicle_num):
         # print "DUAL CALLBACK:: Robot " + str(self.my_number) + " got message from " + str(vehicle_num)
-        self.attrition_dict[vehicle_num] = rospy.get_time() #last heard from vehicle
+        # self.attrition_dict[vehicle_num] = rospy.get_time() #last heard from vehicle
         self.mu[vehicle_num] = msg.data
         if self.attrition_list:
             self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
