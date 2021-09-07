@@ -259,10 +259,9 @@ class WTAOptimization():
                     pkAdj = 1-.01*distance
                     pkAdj = np.append(Pk_att_col, pkAdj, 1)
                     pkNew = np.multiply(Pk,pkAdj)   #should be element-wise multiplication
-                    Pk = np.copy(pkNew)
                     
                     #Now the optimization parameters need to be regenerated
-                    self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V, alpha)
+                    self.inputs = WTAInputs(self.num_weapons, self.num_targets, pkNew, V, alpha)
                     self.opt = DACOA(self.delta, self.gamma, self.rho, self.n, self.m, self.inputs)
                     self.opt.defBlocks(pBlocks, np.arange(self.m))
                     self.opt.useScalars()
