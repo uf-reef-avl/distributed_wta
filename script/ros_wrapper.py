@@ -31,7 +31,9 @@ class WTAOptimization():
         self.delay_upper_bound = rospy.get_param("/delay_upper_bound", .5)  # Publishes primal and dual agents for plotting
         self.delay_lower_bound = rospy.get_param("/delay_lower_bound", .1)  # Publishes primal and dual agents for plotting
         self.synchronization_dual_delay = rospy.get_param("/synchronization_dual_delay", 1.)
+        self.adjustPks = rospy.get_param("/adjust_Pks",False)   # whether Pks are adjusted based on distances
 
+        # TODO : if code below works, it needs to also be updated right here.       
         Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
         assert Pk.shape[0] == self.num_weapons
         assert Pk.shape[1] == self.num_targets
@@ -118,9 +120,9 @@ class WTAOptimization():
 
         # initialize algorithm
         from DACOA.algorithm import DACOA
-        self.opt = DACOA(self.delta, self.gamma, self.rho, self.n, self.m, self.inputs)  # TODO: add documentation
-        self.opt.defBlocks(pBlocks, np.arange(self.m))  # TODO: add documentation
-        self.opt.useScalars()  # TODO: add documentation
+        self.opt = DACOA(self.delta, self.gamma, self.rho, self.n, self.m, self.inputs)
+        self.opt.defBlocks(pBlocks, np.arange(self.m))  
+        self.opt.useScalars()  
         self.a = self.opt.xBlocks[self.my_number]  # lower boundary of primal block (included)
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
 
@@ -215,23 +217,24 @@ class WTAOptimization():
                 self.last_checked = rospy.get_time()
 
             if fmod(rospy.get_time(), self.synchronization_dual_delay) < 0.01:
-                self.weapon_list = range(0, self.num_weapons)
-                self.weapon_list.pop(self.my_number)
-                if self.attrition_list:
-                    self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
-                time.sleep(0.02)
-                self.primal_pub.publish(primal_msg)
-                while self.weapon_list and not rospy.is_shutdown():
-                    self.check_attrition()
-                    continue
+                # # Synchronizing primal communication and waiting for receipt:
+                # self.weapon_list = range(0, self.num_weapons)
+                # self.weapon_list.pop(self.my_number)
+                # if self.attrition_list:
+                #     self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
+                # time.sleep(0.02)
+                # self.primal_pub.publish(primal_msg)
+                # while self.weapon_list and not rospy.is_shutdown():
+                #     self.check_attrition()
+                #     continue
 
-                print "Optimization:: Robot " + str(self.my_number) + ' Weapons list ' + str(self.weapon_list)
-                rospy.loginfo("Optimization:: Robot " + str(self.my_number) +" Done Waiting")
+                # print "Optimization:: Robot " + str(self.my_number) + ' Weapons list ' + str(self.weapon_list)
+                # rospy.loginfo("Optimization:: Robot " + str(self.my_number) +" Done Waiting")
                 self.update_duals()
-                self.weapon_list = range(0, self.num_weapons)
-                self.weapon_list.pop(self.my_number)
-                if self.attrition_list:
-                    self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
+                # self.weapon_list = range(0, self.num_weapons)
+                # self.weapon_list.pop(self.my_number)
+                # if self.attrition_list:
+                #     self.weapon_list = [x for x in self.weapon_list if x not in self.attrition_list]
 
 
             #     self.weapon_list = range(0, self.num_weapons)
@@ -246,6 +249,24 @@ class WTAOptimization():
             #     #     stalling_loop_rate.sleep()
             #     # rospy.logwarn("//////////////////////////////////////////////////////////////////////////////////////////////////////////////")
             #     self.update_duals()
+            
+                # Adjust Pks based on Distance
+                if self.adjustPks: #TODO: this needs to be a param.
+                    distance = np.zeros([self.num_weapons,self.num_targets])
+                    for i in np.arange(0,self.num_weapons):
+                        for j in np.arange(0,self.num_targets):
+                            distance[i][j] = 0     #TODO - update!!
+                    pkAdj = 1-.01*distance
+                    pkAdj = np.append(Pk_att_col, pkAdj, 1)
+                    pkNew = np.multiply(Pk,pkAdj)   #should be element-wise multiplication
+                    Pk = np.copy(pkNew)
+                    
+                    #Now the optimization parameters need to be regenerated
+                    self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V, alpha)
+                    self.opt = DACOA(self.delta, self.gamma, self.rho, self.n, self.m, self.inputs)
+                    self.opt.defBlocks(pBlocks, np.arange(self.m))
+                    self.opt.useScalars()
+                             
 
 
             t1 = time.time()
@@ -264,7 +285,7 @@ class WTAOptimization():
         # rospy.loginfo("Update Duals:: Robot " + str(self.my_number) + ": " + str(self.x))
         muUpdated = self.opt.singleDual(self.x, self.mu[self.my_number], self.my_number, self.inputs)
         self.mu[self.my_number] = np.copy(muUpdated)
-        pub_msg = Float64()
+        pub_msg = Float64() #!! We don't need to publish duals in this case.
         pub_msg.data = self.mu[self.my_number]
 
         if self.publishing_plotting:
