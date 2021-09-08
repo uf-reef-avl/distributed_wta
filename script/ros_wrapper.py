@@ -40,12 +40,29 @@ class WTAOptimization():
         alpha = rospy.get_param("/alpha", 0.01)  # dual regularization parameter
         V = np.array(rospy.get_param("/V"))
         assert V.shape[0] == self.num_targets
+
         # For attritiion, I am going to increase the number targets.
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
         Pk = np.append(Pk_att_col, Pk, 1)
         V = np.append(0, V)
         self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V, alpha)
+
+        ## Option to update initial PKs based on distance
+        if self.adjustPks: 
+            distance = np.zeros([self.num_weapons,self.num_targets])
+            for i in np.array(0,self.num_weapons):
+                for j in np.arange(0,self.num_targets):
+                    agent_position = self.visualization.get_agent_pose(i)
+                    target_position = self.pose_msg_from_dict(self.target_positions[j])
+                    x_diff = agent_position.x - target_position.pose.position.x
+                    y_diff = agent_position.y - target_position.pose.position.y
+                    distance[i][j] = sqrt(pow(x_diff, 2) + pow(y_diff, 2))
+                pkAdj = 1-.01*distance
+                pkAdj = np.append(Pk_att_col, pkAdj, 1)
+                pkNew = np.multiply(Pk,pkAdj)
+            del self.inputs
+            self.inputs = WTAInputs(self.num_weapons, self.num_targets, pkNew, V, alpha)
 
         self.visualization = WTAVisualizer(self.target_positions)
 
@@ -251,7 +268,7 @@ class WTAOptimization():
             #     self.update_duals()
             
                 # Adjust Pks based on Distance
-                if self.adjustPks: #TODO: this needs to be a param.
+                if self.adjustPks: 
                     distance = np.zeros([self.num_weapons,self.num_targets])
                     for i in np.array(0,self.num_weapons):
                         for j in np.arange(0,self.num_targets):
@@ -265,6 +282,7 @@ class WTAOptimization():
                     pkNew = np.multiply(Pk,pkAdj)   #should be element-wise multiplication
                     
                     #Now the optimization parameters need to be regenerated
+                    del self.inputs
                     self.inputs = WTAInputs(self.num_weapons, self.num_targets, pkNew, V, alpha)
                     self.opt = DACOA(self.delta, self.gamma, self.rho, self.n, self.m, self.inputs)
                     self.opt.defBlocks(pBlocks, np.arange(self.m))
