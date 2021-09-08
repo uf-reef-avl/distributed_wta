@@ -15,7 +15,7 @@ import time
 from visualization import WTAVisualizer
 from inputs import WTAInputs
 from nav_msgs.msg import Odometry
-from math import fmod
+from math import fmod, sqrt
 
 class WTAOptimization():
     def __init__(self):
@@ -198,9 +198,9 @@ class WTAOptimization():
             # print "Robot " + str(self.my_number) + " is going to destroy target " + str(assignment[0])
             # print "Robot " + str(self.my_number) + " primal " + str(self.x[self.my_primal_variable_idx] )
             # print "Robot " + str(self.my_number) + " convergence " + str(self.convdiff) + " number of steps " + str(k)
-            setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0] - 1])
+            self.setpoint_msg = self.pose_msg_from_dict(self.target_positions[assignment[0] - 1])
             if self.convdiff < 1e-6:
-                self.goal_pose_pub.publish(setpoint_msg)
+                self.goal_pose_pub.publish(self.setpoint_msg)
 
             if self.publishing_plotting:
                 self.primal_plotting.publish(primal_msg)
@@ -253,9 +253,13 @@ class WTAOptimization():
                 # Adjust Pks based on Distance
                 if self.adjustPks: #TODO: this needs to be a param.
                     distance = np.zeros([self.num_weapons,self.num_targets])
-                    for i in np.arange(0,self.num_weapons):
+                    for i in np.array(0,self.num_weapons):
                         for j in np.arange(0,self.num_targets):
-                            distance[i][j] = 0     #TODO - update!!
+                            agent_position = self.visualization.get_agent_pose(i)
+                            target_position = self.pose_msg_from_dict(self.target_positions[j])
+                            x_diff = agent_position.x - target_position.pose.position.x
+                            y_diff = agent_position.y - target_position.pose.position.y
+                            distance[i][j] = sqrt(pow(x_diff, 2) + pow(y_diff, 2))
                     pkAdj = 1-.01*distance
                     pkAdj = np.append(Pk_att_col, pkAdj, 1)
                     pkNew = np.multiply(Pk,pkAdj)   #should be element-wise multiplication
