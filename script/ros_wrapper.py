@@ -32,7 +32,7 @@ class WTAOptimization():
         self.delay_upper_bound = rospy.get_param("/delay_upper_bound", 0.5)  # Publishes primal and dual agents for plotting
         self.delay_lower_bound = rospy.get_param("/delay_lower_bound", .1)  # Publishes primal and dual agents for plotting
         self.synchronization_dual_delay = rospy.get_param("/synchronization_dual_delay", 0.5)
-        self.adjustPks = rospy.get_param("/adjust_Pks",True)   # whether Pks are adjusted based on distances
+        self.adjustPks = rospy.get_param("/adjust_Pks",False)   # whether Pks are adjusted based on distances
 
         # TODO : if code below works, it needs to also be updated right here.       
         self.Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
