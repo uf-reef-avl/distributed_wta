@@ -152,20 +152,22 @@ class WTAVisualizer():
         self.marker_pub.publish(self.arrow_marker)
 
 
-    def get_agent_pose(self, agent_number):
+    def get_agent_pose(self, agent_number, duration=0.0):
         agent_target_frame = 'agent_' + str(agent_number) + '/odom'
         agent_parent_frame = 'agent_' + str(agent_number) + '/base_footprint'
 
         try:
-            trans = self.tfBuffer.lookup_transform(agent_target_frame, agent_parent_frame, rospy.Time())
+            trans = self.tfBuffer.lookup_transform(agent_target_frame, agent_parent_frame, rospy.Time(0), rospy.Duration(duration))
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             try:
-                trans = self.tfBuffer.lookup_transform('optitrack', 'agent_' + str(agent_number), rospy.Time())
+                trans = self.tfBuffer.lookup_transform('optitrack', 'agent_' + str(agent_number), rospy.Time(0), rospy.Duration(duration))
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                return
+                # print "In except"
+                return(float('Inf'),float('Inf'))
+                # return(0,0)
 
         agent_position = Point()
         agent_position.x = trans.transform.translation.x
         agent_position.y = trans.transform.translation.y
         agent_position.z = 0
-        return agent_position
+        return [agent_position.x, agent_position.y]

@@ -7,7 +7,7 @@
     <arg name="fifth_agent"  default="agent_4"/>
     <arg name="model" default="burger"/>
 
-    <arg name="run_gazebo" default="false"/>
+    <arg name="run_gazebo" default="true"/>
     <arg name="node_start_delay" default="0.0" />
 
     <arg name="run_rviz" default="false"/>
@@ -17,7 +17,7 @@
     <arg name="num_weapons" default="5"/>
     <arg name="num_targets" default="4"/>
 
-    <rosparam command="load" file="$(find wta_distributed_optimization)/params/target_position_sim.yaml"/>
+    <rosparam command="load" file="$(find wta_distributed_optimization)/params/5v4.yaml"/>
 
     <group ns="$(arg first_agent)">
         <arg name="agent_name" default="$(arg first_agent)"/>

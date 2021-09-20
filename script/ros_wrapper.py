@@ -16,6 +16,7 @@ from visualization import WTAVisualizer
 from inputs import WTAInputs
 from nav_msgs.msg import Odometry
 from math import fmod, sqrt
+from DACOA.algorithm import DACOA
 
 class WTAOptimization():
     def __init__(self):
@@ -24,47 +25,50 @@ class WTAOptimization():
         self.num_targets = rospy.get_param("~num_targets", 4)  # number of weapons/agent. Obtained from ROS Param
         self.k_max = rospy.get_param("/max_iter", 1000)  # number of weapons/agent. Obtained from ROS Param
         self.target_positions = rospy.get_param("/target_position")  # number of weapons/agent. Obtained from ROS Param
-        self.attrition_threshold = rospy.get_param("~attrition_threshold", 0.8)
-        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 0.85)
+        self.attrition_threshold = rospy.get_param("~attrition_threshold", 2.8)
+        self.attrition_check_threshold = rospy.get_param("~attrition_check_threshold", 2.85)
         self.is_simulated = rospy.get_param("~is_simulated", False)  # Tells if a turtlebot is simulated or real
         self.publishing_plotting = rospy.get_param("~pub_plotted", True)  # Publishes primal and dual agents for plotting
-        self.delay_upper_bound = rospy.get_param("/delay_upper_bound", .5)  # Publishes primal and dual agents for plotting
+        self.delay_upper_bound = rospy.get_param("/delay_upper_bound", 0.5)  # Publishes primal and dual agents for plotting
         self.delay_lower_bound = rospy.get_param("/delay_lower_bound", .1)  # Publishes primal and dual agents for plotting
-        self.synchronization_dual_delay = rospy.get_param("/synchronization_dual_delay", 1.)
-        self.adjustPks = rospy.get_param("/adjust_Pks",False)   # whether Pks are adjusted based on distances
+        self.synchronization_dual_delay = rospy.get_param("/synchronization_dual_delay", 0.5)
+        self.adjustPks = rospy.get_param("/adjust_Pks",True)   # whether Pks are adjusted based on distances
 
         # TODO : if code below works, it needs to also be updated right here.       
-        Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
-        assert Pk.shape[0] == self.num_weapons
-        assert Pk.shape[1] == self.num_targets
-        alpha = rospy.get_param("/alpha", 0.01)  # dual regularization parameter
-        V = np.array(rospy.get_param("/V"))
-        assert V.shape[0] == self.num_targets
+        self.Pk = np.array(rospy.get_param("/Pk"))  # number of weapons/agent. Obtained from ROS Param
+        assert self.Pk.shape[0] == self.num_weapons
+        assert self.Pk.shape[1] == self.num_targets
+        self.alpha = rospy.get_param("/alpha", 0.01)  # dual regularization parameter
+        self.V = np.array(rospy.get_param("/V"))
+        assert self.V.shape[0] == self.num_targets
 
         # For attritiion, I am going to increase the number targets.
         self.num_targets += 1
         Pk_att_col = np.zeros((self.num_weapons, 1))
-        Pk = np.append(Pk_att_col, Pk, 1)
-        V = np.append(0, V)
-        self.inputs = WTAInputs(self.num_weapons, self.num_targets, Pk, V, alpha)
-
-        ## Option to update initial PKs based on distance
-        if self.adjustPks: 
-            distance = np.zeros([self.num_weapons,self.num_targets])
-            for i in np.array(0,self.num_weapons):
-                for j in np.arange(0,self.num_targets):
-                    agent_position = self.visualization.get_agent_pose(i)
-                    target_position = self.pose_msg_from_dict(self.target_positions[j])
-                    x_diff = agent_position.x - target_position.pose.position.x
-                    y_diff = agent_position.y - target_position.pose.position.y
-                    distance[i][j] = sqrt(pow(x_diff, 2) + pow(y_diff, 2))
-                pkAdj = 1-.01*distance
-                pkAdj = np.append(Pk_att_col, pkAdj, 1)
-                pkNew = np.multiply(Pk,pkAdj)
-            del self.inputs
-            self.inputs = WTAInputs(self.num_weapons, self.num_targets, pkNew, V, alpha)
+        self.Pk = np.append(Pk_att_col, self.Pk, 1)
+        self.V = np.append(0, self.V)
+        self.inputs = WTAInputs(self.num_weapons, self.num_targets, self.Pk, self.V, self.alpha)
 
         self.visualization = WTAVisualizer(self.target_positions)
+        ## Option to update initial PKs based on distance
+        if self.adjustPks:
+            distance = np.zeros([self.num_weapons,self.num_targets-1])
+            for i in xrange(self.num_weapons):
+                for j in xrange(self.num_targets-1):
+                    x, y = self.visualization.get_agent_pose(i, 5.0)
+                    # if
+                    target_position = self.pose_msg_from_dict(self.target_positions[j])
+                    x_diff = x - target_position.pose.position.x
+                    y_diff = y - target_position.pose.position.y
+                    distance[i][j] = sqrt(pow(x_diff, 2) + pow(y_diff, 2))
+                pkAdj = 1-.1*distance
+                pkAdj = np.append(Pk_att_col, pkAdj, 1)
+                pkNew = np.multiply(self.Pk,pkAdj)
+            del self.inputs
+            self.inputs = WTAInputs(self.num_weapons, self.num_targets, pkNew, self.V, self.alpha)
+            # if self.my_number == 1:
+                # print "distance \n" + str(distance)
+            print "pkAdj \n" + str(pkNew)
 
         self.running_while_loop = False
         self.convdiff = 1
@@ -125,7 +129,7 @@ class WTAOptimization():
 
         self.n = self.num_weapons * self.num_targets  # size of primal variable
         self.m = self.num_weapons  # size of dual variable
-        pBlocks = self.num_targets * np.arange(self.num_weapons)
+        self.pBlocks = self.num_targets * np.arange(self.num_weapons)
 
         # initialize variables
         self.mu = np.zeros(self.m)  # shared in primal and dual updates
@@ -136,9 +140,9 @@ class WTAOptimization():
         self.apply_delay = True
 
         # initialize algorithm
-        from DACOA.algorithm import DACOA
+
         self.opt = DACOA(self.delta, self.gamma, self.rho, self.n, self.m, self.inputs)
-        self.opt.defBlocks(pBlocks, np.arange(self.m))  
+        self.opt.defBlocks(self.pBlocks, np.arange(self.m))
         self.opt.useScalars()  
         self.a = self.opt.xBlocks[self.my_number]  # lower boundary of primal block (included)
         self.b = self.opt.xBlocks[self.my_number + 1]  # upper boundary of primal block (not included)
@@ -247,7 +251,7 @@ class WTAOptimization():
 
                 # print "Optimization:: Robot " + str(self.my_number) + ' Weapons list ' + str(self.weapon_list)
                 # rospy.loginfo("Optimization:: Robot " + str(self.my_number) +" Done Waiting")
-                self.update_duals()
+                # self.update_duals()
                 # self.weapon_list = range(0, self.num_weapons)
                 # self.weapon_list.pop(self.my_number)
                 # if self.attrition_list:
@@ -266,27 +270,38 @@ class WTAOptimization():
             #     #     stalling_loop_rate.sleep()
             #     # rospy.logwarn("//////////////////////////////////////////////////////////////////////////////////////////////////////////////")
             #     self.update_duals()
-            
                 # Adjust Pks based on Distance
-                if self.adjustPks: 
-                    distance = np.zeros([self.num_weapons,self.num_targets])
-                    for i in np.array(0,self.num_weapons):
-                        for j in np.arange(0,self.num_targets):
-                            agent_position = self.visualization.get_agent_pose(i)
+                gain = 0.1
+                if self.adjustPks:
+                    distance = np.zeros([self.num_weapons,self.num_targets-1])
+                    for i in np.arange(0,self.num_weapons):
+                        for j in np.arange(0,self.num_targets-1):
+                            x, y = self.visualization.get_agent_pose(int(i))
+                            if x == float('Inf') or y == float('Inf'):
+                                print("did not return a value!")
+                                return
                             target_position = self.pose_msg_from_dict(self.target_positions[j])
-                            x_diff = agent_position.x - target_position.pose.position.x
-                            y_diff = agent_position.y - target_position.pose.position.y
+                            x_diff = x - target_position.pose.position.x
+                            y_diff = y - target_position.pose.position.y
                             distance[i][j] = sqrt(pow(x_diff, 2) + pow(y_diff, 2))
-                    pkAdj = 1-.01*distance
+
+                    pkAdj = 1-gain*distance
+                    Pk_att_col = np.zeros((self.num_weapons, 1))
                     pkAdj = np.append(Pk_att_col, pkAdj, 1)
-                    pkNew = np.multiply(Pk,pkAdj)   #should be element-wise multiplication
-                    
+                    pkNew = np.multiply(self.Pk,pkAdj)   #should be element-wise multiplication
+
+                    # if self.my_number == 1:
+                    #     print "distance \n" + str(distance)
+                    #     print "pkAdj \n" + str(pkNew)
+                        # print "pk old \n" + str(self.Pk)
+
                     #Now the optimization parameters need to be regenerated
                     del self.inputs
-                    self.inputs = WTAInputs(self.num_weapons, self.num_targets, pkNew, V, alpha)
+                    self.inputs = WTAInputs(self.num_weapons, self.num_targets, pkNew, self.V, self.alpha)
                     self.opt = DACOA(self.delta, self.gamma, self.rho, self.n, self.m, self.inputs)
-                    self.opt.defBlocks(pBlocks, np.arange(self.m))
+                    self.opt.defBlocks(self.pBlocks, np.arange(self.m))
                     self.opt.useScalars()
+                self.update_duals()
                              
 
 
@@ -313,8 +328,8 @@ class WTAOptimization():
             self.dual_plotting.publish(pub_msg)
 
         self.dual_pub.publish(pub_msg)
-        for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
-            self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
+        # for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
+        #     self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=True)
 
 
     def pose_msg_from_dict(self, target_dictionary):
@@ -335,9 +350,9 @@ class WTAOptimization():
         ns = self.my_namespace + "position"
         self.visualization.visualize_robot(self.agent_position, ns, self.is_simulated)
         self.visualization.visualize_target()
-        for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
-            self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=False, brighten=False)
-            self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=False)
+        # for i in [x for x in xrange(self.num_weapons) if x != self.my_number]:
+        #     self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=False, brighten=False)
+        #     # self.visualization.visualize_communication(self.my_number, i, self.agent_position, dual=True, brighten=False)
 
     def mocapPoseCallback(self, msg):
         self.agent_position = msg.pose.position
