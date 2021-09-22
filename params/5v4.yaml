@@ -19,4 +19,13 @@ delta: 0.01
 gamma: 0.01
 alpha: 0.01
 rho: 0.004
-#adjust_Pks: Fa
+#adjust_Pks: False
+
+delay_upper_bound: 0.5
+synchronization_dual_delay: 0.5
+
+#delay_upper_bound: 1.0
+#synchronization_dual_delay: 1.0
+
+#delay_upper_bound: 2.0
+#synchronization_dual_delay: 2.0
