@@ -1,4 +1,4 @@
-# Simplified 5v4 Scenario, 7 Sep 2021
+# Simplified 5v4 Scenario, 22 Sep 2021
 
 target_position:
   [
@@ -18,4 +18,5 @@ V: [7, 4, 2, 4]
 delta: 0.01
 gamma: 0.01
 alpha: 0.01
+rho: 0.004
 #adjust_Pks: Fa
