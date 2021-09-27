@@ -1,4 +1,4 @@
-# 5v4 Attrition Case, 22 Sep 2021
+# 5v4 Attrition Case, 27 Sep 2021
 
 #target_position:
 #  [
@@ -33,7 +33,7 @@ Pk: [[0.5, 0.3, 0.4, 0.3],
 delta: 0.1
 gamma: 0.1
 alpha: 0.01
-rho: 0.004
+rho: 0.001  #changed from 0.004 on 9/27
 max_iter: 1000
 synchronization_dual_delay: 1.0
 adjust_Pks: False

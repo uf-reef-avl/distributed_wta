@@ -1,4 +1,4 @@
-# Simplified 5v4 Scenario, 22 Sep 2021
+# Simplified 5v4 Scenario, 26 Sep 2021
 
 target_position:
   [
@@ -18,14 +18,14 @@ V: [7, 4, 2, 4]
 delta: 0.01
 gamma: 0.01
 alpha: 0.01
-rho: 0.004
+rho: 0.0009      #updated from 0.004 on 9/26
 #adjust_Pks: False
 
-delay_upper_bound: 0.5
-synchronization_dual_delay: 0.5
+#delay_upper_bound: 0.5
+#synchronization_dual_delay: 0.5
 
-#delay_upper_bound: 1.0
-#synchronization_dual_delay: 1.0
+delay_upper_bound: 1.0
+synchronization_dual_delay: 1.0
 
 #delay_upper_bound: 2.0
 #synchronization_dual_delay: 2.0
